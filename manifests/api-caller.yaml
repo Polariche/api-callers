@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: api-caller
+  name: api-caller
+  namespace: api-callers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-caller
+  template:
+    metadata:
+      labels:
+        app: api-caller
+    spec:
+      containers:
+      - image: api-callers:latest
+        name: caller
+        args: 
+        - "app.caller:app"
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Never
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 80
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthy
+            port: 80
+          periodSeconds: 3600

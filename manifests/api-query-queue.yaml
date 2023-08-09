@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: api-query-queue
+  name: api-query-queue
+  namespace: api-callers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-query-queue
+  template:
+    metadata:
+      labels:
+        app: api-query-queue
+    spec:
+      containers:
+      - image: api-callers:latest
+        name: query-queue
+        args: 
+        - "app.query_queue:app"
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Never
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 80
+          periodSeconds: 5
+        #livenessProbe:
+        #  httpGet:
+        #    path: /healthy
+        #    port: 80
+        #  periodSeconds: 5
