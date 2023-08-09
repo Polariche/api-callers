@@ -8,12 +8,10 @@ from app.models import *
 app = FastAPI()
 r = redis.Redis(host='redis', port=6379, decode_responses=True)
 
-def push_to_caller(request: Request):
-    try:
-        res = re.post('http://api-caller:80/call', data=dict(request))
 
-    except:
-        raise HTTPException(status_code=res.status_code)
+def push_to_caller(request: Request):
+    res = re.post('http://api-caller:80/call', data=dict(request))
+
 
 @app.get("/")
 def top():

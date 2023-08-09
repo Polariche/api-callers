@@ -23,6 +23,9 @@ spec:
         ports:
         - containerPort: 80
         imagePullPolicy: Never
+        env:
+          - name: KEY_ID
+            value: "0"        # replace this later
         readinessProbe:
           httpGet:
             path: /ready

@@ -2,12 +2,13 @@ from fastapi import FastAPI, HTTPException
 from typing import Union
 import requests as re
 import redis
+import os
 
 from app.api_key import Key
 from app.models import *
 
+key_id = os.environ['KEY_ID']
 
-key_id = 0
 r = redis.Redis(host='redis', port=6379, decode_responses=True)
 k = Key(r, key_id)
 
@@ -21,7 +22,6 @@ def root():
 def call(request: Request):
     err_status_code = 500
 
-    #try:
     method = request.method
     url = request.url
     headers = request.headers
@@ -38,9 +38,6 @@ def call(request: Request):
     err_status_code = response.status_code
 
     return response.json()
-
-    #except:
-    #    raise HTTPException(status_code=err_status_code)
     
 
 @app.get("/ready")
