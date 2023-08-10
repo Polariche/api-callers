@@ -1,0 +1,73 @@
+apiVersion: queries.api-callers.io/v1
+kind: Keyspace
+metadata:
+    name: riot
+    namespace: api-callers
+spec:
+    default-limit-rate:
+      '1': '20'
+      '120': '100'
+---
+apiVersion: queries.api-callers.io/v1
+kind: APIQuery
+metadata:
+    name: summoner-by-name
+    namespace: api-callers
+    labels:
+      queries.api-callers.io/keyspace: riot
+spec:
+    url: https://kr.api.riotgames.com/lol/summoner/v4/summoners/by-name/{summonerName}
+    method: GET
+    result:
+      puuid: $.puuid
+---
+apiVersion: queries.api-callers.io/v1
+kind: APIQuery
+metadata:
+    name: matches-by-puuid
+    namespace: api-callers
+    labels:
+      queries.api-callers.io/keyspace: riot
+spec:
+    url: https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids
+    method: GET
+    variables:
+      startTime: 
+        type: int
+      endTime:
+        type: int
+      queue:
+        type: int
+      type:
+        type: string
+      start:
+        type: int
+        default: '0'
+      count:
+        type: int
+        default: '20'
+    result:
+      matches: $[:]
+---
+apiVersion: queries.api-callers.io/v1
+kind: APIQuery
+metadata:
+    name: match-participants-by-matchid
+    namespace: api-callers
+    labels:
+      queries.api-callers.io/keyspace: riot
+spec:
+    url: https://asia.api.riotgames.com/lol/match/v5/matches/{matchId}
+    method: GET
+    result:
+      participants: $.metadata.participants[:]
+      championIds: $.info.participants[:].championId
+      championNames: $.info.participants[:].championName
+      championLevels: $.info.participants[:].champLevel
+      kills: $.info.participants[:].kills
+      deaths: $.info.participants[:].deaths
+      assists: $.info.participants[:].assists
+      earnedGolds: $.info.participants[:].goldEarned
+      damages: $.info.participants[:].totalDamageDealtToChampions
+      
+      

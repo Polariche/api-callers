@@ -1,26 +1,32 @@
 from fastapi import FastAPI, HTTPException
 from typing import Union
-import requests as re
+import requests
 import redis
 import os
 
 from app.api_key import Key
 from app.models import *
 
-key_id = os.environ['KEY_ID']
-
 r = redis.Redis(host='redis', port=6379, decode_responses=True)
-k = Key(r, key_id)
 
 app = FastAPI()
+app.available = False
+
+app.key_id = os.environ['KEY_ID']
+app.key = Key(r, app.key_id)
+
+def check_available():
+    app.available, seconds, waitseconds = app.key.is_available()
+    if not app.available:
+        raise HTTPException(status_code=429, detail=f"API Key has exceeded rate limits. Please try again after {waitseconds} seconds.")
 
 @app.get("/")
 def root():
-    return {"key_id": key_id}
+    return {"key_id": app.key_id}
 
 @app.post("/call")
 def call(request: Request):
-    err_status_code = 500
+    check_available()
 
     method = request.method
     url = request.url
@@ -33,20 +39,24 @@ def call(request: Request):
     if data_key == "data":
         headers["Content-Type"] = "application/json"
     
-    k.use()
-    response = re.request(url=url, method=method, headers=headers, **data_dict)  
-    err_status_code = response.status_code
+    app.key.use()
+    response = requests.request(url=url, method=method, headers=headers, **data_dict)  
 
-    return response.json()
+    return {"status_code": response.status_code, "headers": response.headers, "body": response.json()}
     
+@app.get("/count")
+def count():
+    return app.key.get_count()
+
+@app.get("/max")
+def max():
+    return app.key.get_max()
 
 @app.get("/ready")
 def ready():
     # caller is Ready
     # if API key exists & not rate-limited
-    available, seconds, waitseconds = k.is_available()
-    if not available:
-        raise HTTPException(status_code=429, detail=f"API Key has exceeded rate limits. Please try again after {waitseconds} seconds.")
+    check_available()
 
     return True
 

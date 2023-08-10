@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   labels:
     app: api-caller
+    queries.api-callers.io/keyspace: riot
   name: api-caller
   namespace: api-callers
 spec:
@@ -10,10 +11,12 @@ spec:
   selector:
     matchLabels:
       app: api-caller
+      queries.api-callers.io/keyspace: riot
   template:
     metadata:
       labels:
         app: api-caller
+        queries.api-callers.io/keyspace: riot
     spec:
       containers:
       - image: api-callers:latest

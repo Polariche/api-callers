@@ -42,3 +42,19 @@ class Key:
                 return False, seconds, waitseconds
 
         return True, -1, -1
+
+    def get_max(self):
+        res = {}
+        rate_limits = self.r.smembers(f"rate_limits:{self.key_id}")
+        for seconds in rate_limits:
+            res[seconds] = int(self.r.get(f"rate_limit_max:{self.key_id}:{seconds}") or 0)
+
+        return res
+
+    def get_count(self):
+        res = {}
+        rate_limits = self.r.smembers(f"rate_limits:{self.key_id}")
+        for seconds in rate_limits:
+            res[seconds] = int(self.r.get(f"rate_limit_count:{self.key_id}:{seconds}") or 0)
+            
+        return res
