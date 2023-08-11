@@ -25,7 +25,6 @@ keyspace = k8s.client.CustomObjectsApi().get_namespaced_custom_object(group="que
                                                                         namespace="api-callers",
                                                                         name="riot")
 
-
 def check_available():
     app.available, seconds, waitseconds = app.key.is_available()
     if not app.available:
@@ -42,8 +41,8 @@ def call(request: Request):
     method = request.method
     url = request.url
     headers = request.headers
+    data = request.data
 
-    data = dict(request.data or {})
     data_key = "params" if method.upper() == "GET" else "data"
     data_dict = {data_key:data}
 
@@ -52,14 +51,15 @@ def call(request: Request):
 
     try:
         inject_key_options = keyspace["spec"]["inject-key"]
+
         if "http-headers" in inject_key_options.keys():
-            for k,v in inject_key_options["http-header"].items():
-                headers[k] = item[v].format(key=app.key)
+            for k,v in inject_key_options["http-headers"].items():
+                headers[k] = v.format(key=app.key.secret)
 
         if "query-params" in inject_key_options.keys():
             add_qparams = {}
             for k,v in inject_key_options["query-params"].items():
-                add_qparams[k] = item[v].format(key=app.key)
+                add_qparams[k] = v.format(key=app.key.secret)
             
             url = apply_query_params(url, add_qparams)
             
