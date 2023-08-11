@@ -4,8 +4,11 @@ import requests
 import redis
 import os
 
+import kubernetes as k8s
+
 from app.api_key import Key
 from app.models import *
+from app.utils import apply_query_params
 
 r = redis.Redis(host='redis', port=6379, decode_responses=True)
 
@@ -14,6 +17,14 @@ app.available = False
 
 app.key_id = os.environ['KEY_ID']
 app.key = Key(r, app.key_id)
+
+k8s.config.load_incluster_config()
+keyspace = k8s.client.CustomObjectsApi().get_namespaced_custom_object(group="queries.api-callers.io", 
+                                                                        version="v1", 
+                                                                        plural="keyspaces", 
+                                                                        namespace="api-callers",
+                                                                        name="riot")
+
 
 def check_available():
     app.available, seconds, waitseconds = app.key.is_available()
@@ -38,6 +49,22 @@ def call(request: Request):
 
     if data_key == "data":
         headers["Content-Type"] = "application/json"
+
+    try:
+        inject_key_options = keyspace["spec"]["inject-key"]
+        if "http-headers" in inject_key_options.keys():
+            for k,v in inject_key_options["http-header"].items():
+                headers[k] = item[v].format(key=app.key)
+
+        if "query-params" in inject_key_options.keys():
+            add_qparams = {}
+            for k,v in inject_key_options["query-params"].items():
+                add_qparams[k] = item[v].format(key=app.key)
+            
+            url = apply_query_params(url, add_qparams)
+            
+    except:
+        pass
     
     app.key.use()
     response = requests.request(url=url, method=method, headers=headers, **data_dict)  

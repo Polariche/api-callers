@@ -6,6 +6,9 @@ metadata:
 spec:
     default-limit-rate:
       '60': '100'
+    inject-key:
+      http-headers:
+        authorizaton: 'bearer {key}'
 ---
 apiVersion: queries.api-callers.io/v1
 kind: APIQuery

@@ -15,12 +15,18 @@ spec:
             spec:
               type: object
               properties:
-                inject-key:
-                  type: object
-                  x-kubernetes-preserve-unknown-fields: true
                 default-limit-rate:
                   type: object
                   x-kubernetes-preserve-unknown-fields: true
+                inject-key:
+                  type: object
+                  properties:
+                    http-headers:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    query-params:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                   
   scope: Namespaced
   names:

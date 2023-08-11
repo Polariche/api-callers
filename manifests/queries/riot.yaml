@@ -7,6 +7,9 @@ spec:
     default-limit-rate:
       '1': '20'
       '120': '100'
+    inject-key:
+      http-headers:
+        X-Riot-Token: '{key}'
 ---
 apiVersion: queries.api-callers.io/v1
 kind: APIQuery

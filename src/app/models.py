@@ -23,8 +23,6 @@ def read_kube(jsonpath, kube_resource):
         raise AttributeError
 
 class Query(BaseModel):
-    kube_resource: Dict = {}
-
     name: str = ''
     url: str = ''
     method: str = 'GET'
@@ -32,10 +30,10 @@ class Query(BaseModel):
     data: str = '{}'
     result: Dict = {}
 
-    def init_from_kube(self):
+    def init_from_kube(self, kube_resource):
         for k,v in query_kube.items():
             try:
-                value = read_kube(v, self.kube_resource)
+                value = read_kube(v, kube_resource)
                 setattr(self, k, value)
 
             except AttributeError:
@@ -44,20 +42,21 @@ class Query(BaseModel):
 
     def apply(self, params):
         path_params_keys = path_params_from_url(self.url)
+        required_variables = {k for k,v in self.variables.items() if v['required']}
 
-        required_params_keys = path_params_keys + {k for k,v in self.variables.items() if v['required']}
+        required_params_keys = path_params_keys.union(required_variables)
         params_not_provided = set(params.keys()) - required_params_keys
         assert len(params_not_provided) == 0, f"Required parameters are not provided: {params_not_provided}"
 
         path_params = {k:params[k] for k in path_params_keys}
-        url = apply_query_params(url, path_params)
+        url = apply_path_params(self.url, path_params)
 
         func = {'int': int, 'string': str}
         var_values = {k:func[v['type']](params[k] or v['default']) for k,v in self.variables.items() if k in params.keys() or 'default' in v.values()}
         
         if self.method == "GET":
             url = apply_query_params(url, var_values)
-            data = None
+            data = {}
         else:
             try:
                 data = json_loads_with_variables(self.data, var_values)
@@ -86,6 +85,7 @@ class Query(BaseModel):
                 q.appendleft(k)                         # insert self again
                 continue
 
+            # TODO: add support for max(jsonpath), min(jsonpath), and regex(jsonpath, pattern)
             res[k] = params[k] = parse_jsonpath_with_variables(self.result[k], body, params)
 
         return res
