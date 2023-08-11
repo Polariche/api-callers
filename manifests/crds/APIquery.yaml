@@ -25,6 +25,10 @@ spec:
                 variables:
                   type: object
                   x-kubernetes-preserve-unknown-fields: true
+                variables-required:
+                  type: array
+                  items:
+                    type: string
                 result:
                   type: object
                   x-kubernetes-preserve-unknown-fields: true

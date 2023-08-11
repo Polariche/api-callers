@@ -22,7 +22,7 @@ spec:
     url: https://kr.api.riotgames.com/lol/summoner/v4/summoners/by-name/{summonerName}
     method: GET
     result:
-      puuid: $.puuid
+      puuid: first($.puuid)
 ---
 apiVersion: queries.api-callers.io/v1
 kind: APIQuery

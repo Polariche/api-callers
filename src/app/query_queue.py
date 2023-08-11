@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.param_functions import Depends
-from typing import Union, Dict
+from typing import Union, Dict, List
+from collections import deque
 import requests
 import redis
 import json
@@ -23,10 +24,13 @@ queries = k8s.client.CustomObjectsApi().list_namespaced_custom_object(group="que
 
 app.queries = {q['metadata']['name']:Query().init_from_kube(q) for q in queries}
 
-def send_to_caller(request: Request):
-    res = requests.post('http://api-caller:80/call', data=dict(request))
+def send_to_caller(reqs: List[Dict]):
+    headers = {"Content-Type": "application/json"}
+    responses = [requests.post('http://api-caller:80/call', headers=headers, data=json.dumps(dict(req))) for req in reqs]
 
-def fetch_requests(query, count):
+    return responses
+
+def pop_requests(query, count):
     method = app.queries[query].method
     urls = r.rpop(f"queue:{app.queueid}:{query}:url", count)
 
@@ -37,25 +41,34 @@ def fetch_requests(query, count):
         return [Request(url=url, method=method) for url in urls]
 
 def _delete_top(count: int = 1):
-    assert count > 0, "count must be at least 1"
+    if count <= 0:
+        raise HTTPException(status_code=422, detail="count must be at least 1")
 
     queries = r.rpop(f"queue:{app.queueid}", count)
-    assert len(queries)
+    if queries is None:
+        raise HTTPException(status_code=404, detail="There are no queries left in the queue")
+
     qcounts = {q:queries.count(q) for q in set(queries)}
-    requests = []
+    reqs = {}
 
     for query,qcount in qcounts.items():
-        requests += fetch_requests(query, qcount)
+        reqs[query] = deque(pop_requests(query, qcount))
 
-    return requests
+    requests = deque()
+    for q in queries:
+        requests.append(reqs[q].popleft())
+
+    return list(requests), queries
 
 def _delete_query(query: str, count: int = 1):
-    assert count > 0, "count must be at least 1"
+    if count <= 0:
+        raise HTTPException(status_code=422, detail="count must be at least 1")
 
     count = r.lrem(f"queue:{app.queueid}", -count, query)
-
-    assert count > 0, f"There is no {query} query in the queue"
-    requests = fetch_requests(query, count)
+    if count <= 0:
+        raise HTTPException(status_code=404, detail=f"There are no queries({query}) left in the queue")
+        
+    requests = pop_requests(query, count)
 
     return requests
 
@@ -78,31 +91,44 @@ def post_query(query: str, params: Dict):
 
     r.lpush(f"queue:{app.queueid}", query)
     r.lpush(f"queue:{app.queueid}:{query}:url", url)
-    if data is not None:
-        r.lpush(f"queue:{app.queueid}:{query}:var", data)
 
-    return {"query": query, "url": url, "data": data}
+    if data is not "null":
+        r.lpush(f"queue:{app.queueid}:{query}:var", data)
+        return {"query": query, "url": url, "data": data}
+
+    else:
+        return {"query": query, "url": url}
 
 @app.delete("/")
 def delete_top(count: int = 1):
-    return _delete_top(count)
+    reqs, queries = _delete_top(count)
+    return {"queries": queries, "requests": reqs}
 
 @app.delete("/query/{query}")
 def delete_query(query: str, count: int = 1):
-    return _delete_query(query, count)
+    reqs = _delete_query(query, count)
+    return {"requests": reqs}
 
 @app.get("/send")
 def send(count: int = 1):
-    requests = _delete_top(count)
-    return 
+    reqs, queries = _delete_top(count)
+    responses = send_to_caller(reqs)
+
+    results = [app.queries[query].get_result(response.json()['body'], data=req.data) for req, response, query in zip(reqs, responses, queries)]
+    
+    return results
 
 @app.get("/send/query/{query}")
 def send_query(query: str, count: int = 1):
-    requests = _delete_query(query, count)
-    return 
+    reqs = _delete_query(query, count)
+    responses = send_to_caller(reqs)
+
+    results = [app.queries[query].get_result(response.json()['body'], data=req.data) for req, response in zip(reqs, responses)]
+
+    return results
 
 @app.get("/apiqueries")
-def available_query():
+def available_API_queries():
     return app.queries
 
 @app.get("/ready")

@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Union, Dict, List, Optional
-from app.utils import path_params_from_url, apply_query_params, apply_path_params, json_loads_with_variables
+from app.utils import path_params_from_url, apply_query_params, apply_path_params, json_loads_with_variables, eval_jsonpath_func
 from collections import deque
 
 import json
@@ -12,6 +12,7 @@ query_kube = {
                 'url': '$.spec.url',
                 'method': '$.spec.method',
                 'variables': '$.spec.variables',
+                'variables_required': '$.spec.variables-required',
                 'data': '$.spec.data',
                 'result': '$.spec.result',
             }
@@ -27,6 +28,7 @@ class Query(BaseModel):
     url: str = ''
     method: str = 'GET'
     variables: Dict = {}
+    variables_required: List = []
     data: str = '{}'
     result: Dict = {}
 
@@ -42,7 +44,7 @@ class Query(BaseModel):
 
     def apply(self, params):
         path_params_keys = path_params_from_url(self.url)
-        required_variables = {k for k,v in self.variables.items() if v['required']}
+        required_variables = {k for k,v in self.variables.items() if v in self.variables_required and 'default' not in v.keys()}
 
         required_params_keys = path_params_keys.union(required_variables)
         params_not_provided = set(params.keys()) - required_params_keys
@@ -52,11 +54,18 @@ class Query(BaseModel):
         url = apply_path_params(self.url, path_params)
 
         func = {'int': int, 'string': str}
-        var_values = {k:func[v['type']](params[k] or v['default']) for k,v in self.variables.items() if k in params.keys() or 'default' in v.values()}
-        
+        var_values = {}
+        for k,v in self.variables.items():
+            f = func[v['type']]
+
+            if k in params.keys():
+                var_values[k] = f(params[k])
+            elif "default" in v.keys():
+                var_values[k] = f(v["default"])
+
         if self.method == "GET":
             url = apply_query_params(url, var_values)
-            data = {}
+            data = None
         else:
             try:
                 data = json_loads_with_variables(self.data, var_values)
@@ -67,26 +76,25 @@ class Query(BaseModel):
 
         return url, data_string
 
-    def get_result(self, body, params:Optional[Dict], headers:Optional[Dict], result_targets:Optional[List]):
+    def get_result(self, body, data:Optional[Dict] = None, result_targets:Optional[List] = None):
         res = {}
 
-        q = result_targets or [k for k,v in self.result.keys()]
+        q = result_targets or [k for k in self.result.keys()]
         q = set(q).intersection(self.result.keys())
         q = deque(q)
 
-        params = params or {}
+        data = data or {}
 
         required = {k:path_params_from_url(v) for k,v in self.result.items()}
 
         while q:
             k = q.pop()
-            if len(reqs[k] - res.keys()) > 0:
+            if len(required[k] - res.keys()) > 0:
                 q.extendleft(required[k] - set(q))      # insert required parameters to the queue, if they don't exist
                 q.appendleft(k)                         # insert self again
                 continue
 
-            # TODO: add support for max(jsonpath), min(jsonpath), and regex(jsonpath, pattern)
-            res[k] = params[k] = parse_jsonpath_with_variables(self.result[k], body, params)
+            res[k] = data[k] = eval_jsonpath_func(self.result[k], body, data)
 
         return res
 

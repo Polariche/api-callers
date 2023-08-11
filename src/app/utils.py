@@ -3,8 +3,11 @@ import json
 from jsonpath_rw import jsonpath
 from jsonpath_rw_ext import parse
 
+from app.jsonpath_functions import jsonpath_functions
+
 varname_regex = '[\w_][\w\d_-]*'
 path_regex = '^(\w*://)?((?:[\w\d_-]*\.)*[\w\d_-]*)(?:\:(\d*))?((?:/[\w\d\._-]*)*)'
+jsonpath_regex = '(?:\$|\.[\w_][\w\d_-]*|\[[^\[\]\s]\])*'
 
 def path_params_from_url(url):
     return set(re.findall('\{([\w_][\w\d_-]*)\}', url))
@@ -31,12 +34,28 @@ def apply_query_params(url, params):
     url, old_params = query_params_from_url(url)
     old_params.update(params)
 
-    url = url+'?'+'&'.join([f'{k}={v}' for k,v in old_params.items()])
+    if len(old_params.keys()) > 0:
+        url = url+'?'+'&'.join([f'{k}={v}' for k,v in old_params.items()])
 
     return url
 
 def json_loads_with_variables(json_string, variables):
     return json.loads(json_string.format(**variables))
 
-def parse_jsonpath_with_variables(jsonpath, content, variables):
-    return parse(jsonpath.format(**variables)).find(content.format(**variables))
+def eval_jsonpath_func(jsonpath_s, content, variables):
+    regex = f'({varname_regex})\(\s*({jsonpath_regex})\s*\)'
+    try:
+        func_name, jsonpath_s = re.findall(regex, jsonpath_s)[0]
+        result = eval_jsonpath_func(jsonpath_s, content, variables)
+
+        return jsonpath_functions[func_name](result)
+
+    except IndexError:
+        return parse_jsonpath_with_variables(jsonpath_s, content, variables)
+    
+def parse_jsonpath_with_variables(jsonpath_s, content, variables):
+    if len(variables.keys()) > 0:
+        jsonpath_s = jsonpath_s.format(**variables)
+        content = json.loads(json.dumps(content.format(**variables)))
+        
+    return [m.value for m in parse(jsonpath_s).find(content)]
