@@ -8,7 +8,6 @@ import json
 from app.models import *
 
 app = FastAPI()
-r = redis.Redis(host='redis', port=6379, decode_responses=True)
 
 @app.post("/query/{query}")
 def post_query(query: str, params: Dict):
@@ -28,8 +27,15 @@ def post_query(query: str, params: Dict):
     except KeyError as e: 
         raise HTTPException(status_code=422, detail=f"Following variables must be defined: {e.args[0]}")
     
+    print(req.data)
     response = send_to_caller([req])[0]
-    result = q.get_result(response.json()['body'], data=req.data)
+    
+    try:
+        body = response.json()['body']
+    except KeyError:
+        raise HTTPException(status_code=response.status_code, detail=f"Got an error message : {response.json()['detail']}")
+    
+    result = q.get_result(body, data=params)
 
     return result
 
@@ -40,7 +46,7 @@ def available_API_queries():
 @app.get("/ready")
 def ready():
     try:
-        requests.get('http://api-caller:80')
+        requests.get(f'http://qourier-caller-{os.environ["KEYSPACE"]}:80')
     except:
         raise HTTPException(status_code=500, detail=f"No API Callers are available. Please try again.")
 

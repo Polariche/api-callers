@@ -4,7 +4,7 @@ metadata:
   labels:
     app: redis
   name: redis
-  namespace: api-callers
+  namespace: qouriers
 spec:
   replicas: 1
   selector:

@@ -4,20 +4,24 @@ from collections import deque
 import requests
 import redis
 import json
+import os
+
 
 from app.models import *
+from app.utils import path_params_from_url
 
 app = FastAPI()
 r = redis.Redis(host='redis', port=6379, decode_responses=True)
 
-app.queueid = 'queueid'
+app.queueid = os.environ['QUEUE_ID']
+app.keyspace = os.environ['KEYSPACE']
 
 def pop_requests(query, count):
     method = get_query(query).method
-    urls = r.rpop(f"queue:{app.queueid}:{query}:url", count)
+    urls = r.rpop(f"queue:{app.keyspace}:{app.queueid}:{query}:url", count)
 
     if method != "GET":
-        vars = r.rpop(f"queue:{app.queueid}:{query}:var", count)
+        vars = r.rpop(f"queue:{app.keyspace}:{app.queueid}:{query}:var", count)
         return [Request(url=url, method=method, data=json.loads(var)) for url, var in zip(urls, vars)]
     else:
         return [Request(url=url, method=method) for url in urls]
@@ -26,7 +30,7 @@ def _delete_top(count: int = 1):
     if count <= 0:
         raise HTTPException(status_code=422, detail="count must be at least 1")
 
-    queries = r.rpop(f"queue:{app.queueid}", count)
+    queries = r.rpop(f"queue:{app.keyspace}:{app.queueid}", count)
     if queries is None:
         raise HTTPException(status_code=404, detail="There are no queries left in the queue")
 
@@ -46,7 +50,7 @@ def _delete_query(query: str, count: int = 1):
     if count <= 0:
         raise HTTPException(status_code=422, detail="count must be at least 1")
 
-    count = r.lrem(f"queue:{app.queueid}", -count, query)
+    count = r.lrem(f"queue:{app.keyspace}:{app.queueid}", -count, query)
     if count <= 0:
         raise HTTPException(status_code=404, detail=f"There are no queries({query}) left in the queue")
         
@@ -74,11 +78,11 @@ def post_query(query: str, params: Dict):
     except KeyError as e: 
         raise HTTPException(status_code=422, detail=f"Following variables must be defined: {e.args[0]}")
 
-    r.lpush(f"queue:{app.queueid}", query)
-    r.lpush(f"queue:{app.queueid}:{query}:url", url)
+    r.lpush(f"queue:{app.keyspace}:{app.queueid}", query)
+    r.lpush(f"queue:{app.keyspace}:{app.queueid}:{query}:url", url)
 
     if var is not "null":
-        r.lpush(f"queue:{app.queueid}:{query}:var", var)
+        r.lpush(f"queue:{app.keyspace}:{app.queueid}:{query}:var", var)
         return {"query": query, "url": url, "data": var}
 
     else:
@@ -101,6 +105,11 @@ def send(count: int = 1):
 
     qs = {query:get_query(query) for query in set(queries)}
 
+    for req, query in zip(reqs, queries):
+        print(req.url, qs[query].url)
+        print(path_params_from_url(req.url, qs[query].url))
+        req.data.update(path_params_from_url(req.url, qs[query].url))
+    
     results = [qs[query].get_result(response.json()['body'], data=req.data) for req, response, query in zip(reqs, responses, queries)]
     
     return results
@@ -111,6 +120,9 @@ def send_query(query: str, count: int = 1):
     responses = send_to_caller(reqs)
 
     q = get_query(query)
+
+    for req in reqs:
+        req.data.update(path_params_from_url(req.url, q.url))
 
     results = [q.get_result(response.json()['body'], data=req.data) for req, response in zip(reqs, responses)]
 
@@ -123,7 +135,7 @@ def available_API_queries():
 @app.get("/ready")
 def ready():
     try:
-        requests.get('http://api-caller:80')
+        requests.get(f'http://qourier-caller-{app.keyspace}:80')
     except:
         raise HTTPException(status_code=500, detail=f"No API Callers are available. Please try again.")
 

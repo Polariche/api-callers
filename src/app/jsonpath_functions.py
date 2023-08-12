@@ -1,5 +1,8 @@
 jsonpath_functions = {}
 
+mx = max
+mn = min
+
 def register(func):
     jsonpath_functions[func.__name__] = func
     return func
@@ -14,11 +17,11 @@ def last(result):
 
 @register
 def min(result):
-    return min(result)
+    return mn(result)
 
 @register
 def max(result):
-    return max(result)
+    return mx(result)
 
 @register
 def regex(result):

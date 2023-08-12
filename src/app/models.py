@@ -1,13 +1,14 @@
 from pydantic import BaseModel
 from typing import Union, Dict, List, Optional
-from app.utils import path_params_from_url, apply_query_params, apply_path_params, json_loads_with_variables, eval_jsonpath_func
+from app.utils import path_param_keys_from_path, apply_query_params, apply_path_params, json_loads_with_variables, eval_jsonpath_func
 from collections import deque
+
+import os
 
 import kubernetes as k8s
 import requests
 
 import json
-from jsonpath_rw import jsonpath
 from jsonpath_rw_ext import parse
 
 query_kube = {
@@ -46,7 +47,7 @@ class Query(BaseModel):
         return self
 
     def apply(self, params):
-        path_params_keys = path_params_from_url(self.url)
+        path_params_keys = path_param_keys_from_path(self.url)
         required_variables = {k for k,v in self.variables.items() if v in self.variables_required and 'default' not in v.keys()}
 
         required_params_keys = path_params_keys.union(required_variables)
@@ -74,7 +75,7 @@ class Query(BaseModel):
         else:
             try:
                 data = json_loads_with_variables(self.data, var_values)
-            except json.decoder.JSONDecoderError:
+            except:
                 data = var_values
 
         data_string = json.dumps(data)
@@ -90,11 +91,11 @@ class Query(BaseModel):
 
         data = data or {}
 
-        required = {k:path_params_from_url(v) for k,v in self.result.items()}
+        required = {k:path_param_keys_from_path(v) for k,v in self.result.items()}
 
         while q:
             k = q.pop()
-            if len(required[k] - res.keys()) > 0:
+            if len(required[k] - data.keys()) > 0:
                 q.extendleft(required[k] - set(q))      # insert required parameters to the queue, if they don't exist
                 q.appendleft(k)                         # insert self again
                 continue
@@ -105,19 +106,19 @@ class Query(BaseModel):
 
 def get_all_queries_from_kube():
     k8s.config.load_incluster_config()
-    queries = k8s.client.CustomObjectsApi().list_namespaced_custom_object(group="queries.api-callers.io", 
+    queries = k8s.client.CustomObjectsApi().list_namespaced_custom_object(group="queries.qouriers.io", 
                                                                         version="v1", 
                                                                         plural="apiqueries", 
-                                                                        namespace="api-callers",
-                                                                        label_selector="queries.api-callers.io/keyspace=riot")['items']
+                                                                        namespace="qouriers",
+                                                                        label_selector=f"queries.qouriers.io/keyspace={os.environ['KEYSPACE']}")['items']
     return {q['metadata']['name']:Query().init_from_kube(q) for q in queries}
 
 def get_query_from_kube(query):
     k8s.config.load_incluster_config()
-    q = k8s.client.CustomObjectsApi().get_namespaced_custom_object(group="queries.api-callers.io", 
+    q = k8s.client.CustomObjectsApi().get_namespaced_custom_object(group="queries.qouriers.io", 
                                                                         version="v1", 
                                                                         plural="apiqueries", 
-                                                                        namespace="api-callers",
+                                                                        namespace="qouriers",
                                                                         name=query)
     return Query().init_from_kube(q)
 
@@ -137,6 +138,6 @@ class Request(BaseModel):
 
 def send_to_caller(reqs: List[Request]):
     headers = {"Content-Type": "application/json"}
-    responses = [requests.post('http://api-caller:80/call', headers=headers, data=json.dumps(dict(req))) for req in reqs]
+    responses = [requests.post(f'http://qourier-caller-{os.environ["KEYSPACE"]}:80/call', headers=headers, data=json.dumps(dict(req))) for req in reqs]
 
     return responses

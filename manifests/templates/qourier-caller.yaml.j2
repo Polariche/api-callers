@@ -1,17 +1,17 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: api-caller
-  namespace: api-callers
+  name: qourier-caller
+  namespace: qouriers
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: api-caller
-  namespace: api-callers
+  name: qourier-caller
+  namespace: qouriers
 rules:
 - apiGroups:
-  - queries.api-callers.io
+  - queries.qouriers.io
   resources:
   - keyspaces
   verbs:
@@ -21,39 +21,39 @@ rules:
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: api-caller
-  namespace: api-callers
+  name: qourier-caller
+  namespace: qouriers
 subjects:
 - kind: ServiceAccount
-  name: api-caller
+  name: qourier-caller
 roleRef:
   kind: Role
-  name: api-caller
+  name: qourier-caller
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: api-caller
-    queries.api-callers.io/keyspace: riot
-  name: api-caller
-  namespace: api-callers
+    app: qourier-caller
+    queries.qouriers.io/keyspace: {{ keyspace }}
+  name: qourier-caller-{{ keyspace }}
+  namespace: qouriers
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: api-caller
-      queries.api-callers.io/keyspace: riot
+      app: qourier-caller
+      queries.qouriers.io/keyspace: {{ keyspace }}
   template:
     metadata:
       labels:
-        app: api-caller
-        queries.api-callers.io/keyspace: riot
+        app: qourier-caller
+        queries.qouriers.io/keyspace: {{ keyspace }}
     spec:
-      serviceAccountName: api-caller
+      serviceAccountName: qourier-caller
       containers:
-      - image: api-callers:latest
+      - image: qouriers:latest
         name: caller
         args: 
         - "app.caller:app"
@@ -63,6 +63,8 @@ spec:
         env:
           - name: KEY_ID
             value: "0"        # replace this later
+          - name: KEYSPACE
+            value: {{ keyspace }}
         readinessProbe:
           httpGet:
             path: /ready

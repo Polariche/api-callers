@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: qourier-queue
+    queries.qouriers.io/keyspace: {{ keyspace }}
+  name: qourier-queue-{{ keyspace }}
+  namespace: qouriers
+spec:
+  ports:
+  - port: 8000
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: qourier-queue
+    queries.qouriers.io/keyspace: {{ keyspace }}
+  type: NodePort

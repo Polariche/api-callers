@@ -1,51 +1,52 @@
-apiVersion: queries.api-callers.io/v1
+apiVersion: queries.qouriers.io/v1
 kind: Keyspace
 metadata:
     name: lostark
-    namespace: api-callers
+    namespace: qouriers
 spec:
     default-limit-rate:
       '60': '100'
     inject-key:
       http-headers:
-        authorizaton: 'bearer {key}'
+        authorization: 'bearer {key}'
 ---
-apiVersion: queries.api-callers.io/v1
+apiVersion: queries.qouriers.io/v1
 kind: APIQuery
 metadata:
     name: max-item-level
-    namespace: api-callers
+    namespace: qouriers
     labels:
-      queries.api-callers.io/keyspace: lostark
+      queries.qouriers.io/keyspace: lostark
 spec:
     url: https://developer-lostark.game.onstove.com/characters/{characterName}/siblings
     method: GET
     result:
-      serverName: $[?(@.CharacterName=="{characterName}")].ServerName
+      serverName: first($[?(@.CharacterName=="{characterName}")].ServerName)
       maxLevel: max($[?(@.ServerName=="{serverName}")].ItemMaxLevel)
+      maxLevelCharacterName: first($[?(@.ItemMaxLevel=="{maxLevel}")].CharacterName)
 
 ---
-apiVersion: queries.api-callers.io/v1
+apiVersion: queries.qouriers.io/v1
 kind: APIQuery
 metadata:
     name: expedition-level
-    namespace: api-callers
+    namespace: qouriers
     labels:
-      queries.api-callers.io/keyspace: lostark
+      queries.qouriers.io/keyspace: lostark
 spec:
     url: https://developer-lostark.game.onstove.com/armories/characters/{characterName}/profiles
     method: GET
     result:
-      expeditionLevel: $.ExpeditionLevel
+      expeditionLevel: first($.ExpeditionLevel)
 
 ---
-apiVersion: queries.api-callers.io/v1
+apiVersion: queries.qouriers.io/v1
 kind: APIQuery
 metadata:
     name: search-gem-price
-    namespace: api-callers
+    namespace: qouriers
     labels:
-      queries.api-callers.io/keyspace: lostark
+      queries.qouriers.io/keyspace: lostark
 spec:
     url: https://developer-lostark.game.onstove.com/auctions/items
     method: POST
@@ -60,21 +61,21 @@ spec:
       {
         "Sort": "BUY_PRICE",
         "CategoryCode": 210000,
-        "ItemName": "{level}레벨 {gemtype}의 보석",
+        "ItemName": "{level}레벨 {gemtype}",
         "PageNo": 0,
         "SortCondition": "ASC"
       }
     result:
-      minPrice: $.Items.$0.AuctionInfo.BuyPrice
+      minPrice: first($.Items[:].AuctionInfo.BuyPrice)
 
 ---
-apiVersion: queries.api-callers.io/v1
+apiVersion: queries.qouriers.io/v1
 kind: APIQuery
 metadata:
     name: search-stone-price
-    namespace: api-callers
+    namespace: qouriers
     labels:
-      queries.api-callers.io/keyspace: lostark
+      queries.qouriers.io/keyspace: lostark
 spec:
     url: https://developer-lostark.game.onstove.com/auctions/items
     method: POST
@@ -106,5 +107,5 @@ spec:
         "SortCondition": "ASC"
       }
     result:
-      prices: $.Items[:].AuctionInfo.BuyPrice
-      options: $.Items[:].Options.OptionName
+      prices: first($.Items[:].AuctionInfo.BuyPrice)
+      options: first($.Items[:].Options.OptionName)

@@ -16,14 +16,15 @@ app = FastAPI()
 app.available = False
 
 app.key_id = os.environ['KEY_ID']
+app.keyspace = os.environ['KEYSPACE']
 app.key = Key(r, app.key_id)
 
 k8s.config.load_incluster_config()
-keyspace = k8s.client.CustomObjectsApi().get_namespaced_custom_object(group="queries.api-callers.io", 
+keyspace = k8s.client.CustomObjectsApi().get_namespaced_custom_object(group="queries.qouriers.io", 
                                                                         version="v1", 
                                                                         plural="keyspaces", 
-                                                                        namespace="api-callers",
-                                                                        name="riot")
+                                                                        namespace="qouriers",
+                                                                        name=app.keyspace)
 
 def check_available():
     app.available, seconds, waitseconds = app.key.is_available()
@@ -44,7 +45,7 @@ def call(request: Request):
     data = request.data
 
     data_key = "params" if method.upper() == "GET" else "data"
-    data_dict = {data_key:data}
+    data_dict = {data_key:json.dumps(data)}
 
     if data_key == "data":
         headers["Content-Type"] = "application/json"
@@ -68,6 +69,9 @@ def call(request: Request):
     
     app.key.use()
     response = requests.request(url=url, method=method, headers=headers, **data_dict)  
+
+    if response.status_code > 300:
+        raise HTTPException(status_code=response.status_code, detail=f"{response.json()}")
 
     return {"status_code": response.status_code, "headers": response.headers, "body": response.json()}
     

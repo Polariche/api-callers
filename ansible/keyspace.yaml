@@ -1,0 +1,22 @@
+---
+- name: Create Keyspace deployments & services
+  hosts: localhost
+  become: yes
+  vars:
+    keyspace: lostark
+
+  tasks:
+    - shell: "mkdir -p ../manifests/tmp/{{ keyspace }}"
+
+    - template:
+        src: "{{ item }}"
+        dest: ../manifests/tmp/{{ keyspace }}/{{ item | basename | regex_replace('\.j2$', '') }}
+      with_fileglob:
+        - ../manifests/templates/*.yaml.j2
+
+    - kubernetes.core.k8s:
+        state: present
+        src: "../manifests/tmp/{{ keyspace }}"
+        apply: true
+
+    - shell: "rm -rf ../manifests/tmp/{{ keyspace }}"
