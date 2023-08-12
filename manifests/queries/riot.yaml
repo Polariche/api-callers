@@ -27,7 +27,7 @@ spec:
 apiVersion: queries.api-callers.io/v1
 kind: APIQuery
 metadata:
-    name: matches-by-puuid
+    name: matchids-by-puuid
     namespace: api-callers
     labels:
       queries.api-callers.io/keyspace: riot
@@ -50,7 +50,7 @@ spec:
         type: int
         default: '20'
     result:
-      matches: $[:]
+      matchids: $[:]
 ---
 apiVersion: queries.api-callers.io/v1
 kind: APIQuery
@@ -60,7 +60,7 @@ metadata:
     labels:
       queries.api-callers.io/keyspace: riot
 spec:
-    url: https://asia.api.riotgames.com/lol/match/v5/matches/{matchId}
+    url: https://asia.api.riotgames.com/lol/match/v5/matches/{matchid}
     method: GET
     result:
       participants: $.metadata.participants[:]

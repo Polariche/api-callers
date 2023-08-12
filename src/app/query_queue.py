@@ -1,12 +1,9 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.param_functions import Depends
 from typing import Union, Dict, List
 from collections import deque
 import requests
 import redis
 import json
-
-import kubernetes as k8s
 
 from app.models import *
 
@@ -15,23 +12,8 @@ r = redis.Redis(host='redis', port=6379, decode_responses=True)
 
 app.queueid = 'queueid'
 
-k8s.config.load_incluster_config()
-queries = k8s.client.CustomObjectsApi().list_namespaced_custom_object(group="queries.api-callers.io", 
-                                                                        version="v1", 
-                                                                        plural="apiqueries", 
-                                                                        namespace="api-callers",
-                                                                        label_selector="queries.api-callers.io/keyspace=riot")['items']
-
-app.queries = {q['metadata']['name']:Query().init_from_kube(q) for q in queries}
-
-def send_to_caller(reqs: List[Dict]):
-    headers = {"Content-Type": "application/json"}
-    responses = [requests.post('http://api-caller:80/call', headers=headers, data=json.dumps(dict(req))) for req in reqs]
-
-    return responses
-
 def pop_requests(query, count):
-    method = app.queries[query].method
+    method = get_query(query).method
     urls = r.rpop(f"queue:{app.queueid}:{query}:url", count)
 
     if method != "GET":
@@ -83,18 +65,21 @@ def top_query(query: str):
 @app.post("/query/{query}")
 def post_query(query: str, params: Dict):
     try:
-        query_model = app.queries[query]
+        query_model = get_query(query)
     except:
         raise HTTPException(status_code=404, detail=f"Query not found")
 
-    url, data = query_model.apply(params)
+    try:
+        url, var = query_model.apply(params)
+    except KeyError as e: 
+        raise HTTPException(status_code=422, detail=f"Following variables must be defined: {e.args[0]}")
 
     r.lpush(f"queue:{app.queueid}", query)
     r.lpush(f"queue:{app.queueid}:{query}:url", url)
 
-    if data is not "null":
-        r.lpush(f"queue:{app.queueid}:{query}:var", data)
-        return {"query": query, "url": url, "data": data}
+    if var is not "null":
+        r.lpush(f"queue:{app.queueid}:{query}:var", var)
+        return {"query": query, "url": url, "data": var}
 
     else:
         return {"query": query, "url": url}
@@ -114,7 +99,9 @@ def send(count: int = 1):
     reqs, queries = _delete_top(count)
     responses = send_to_caller(reqs)
 
-    results = [app.queries[query].get_result(response.json()['body'], data=req.data) for req, response, query in zip(reqs, responses, queries)]
+    qs = {query:get_query(query) for query in set(queries)}
+
+    results = [qs[query].get_result(response.json()['body'], data=req.data) for req, response, query in zip(reqs, responses, queries)]
     
     return results
 
@@ -123,13 +110,15 @@ def send_query(query: str, count: int = 1):
     reqs = _delete_query(query, count)
     responses = send_to_caller(reqs)
 
-    results = [app.queries[query].get_result(response.json()['body'], data=req.data) for req, response in zip(reqs, responses)]
+    q = get_query(query)
+
+    results = [q.get_result(response.json()['body'], data=req.data) for req, response in zip(reqs, responses)]
 
     return results
 
 @app.get("/apiqueries")
 def available_API_queries():
-    return app.queries
+    return get_all_queries()
 
 @app.get("/ready")
 def ready():

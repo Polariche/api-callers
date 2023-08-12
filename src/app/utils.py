@@ -40,7 +40,15 @@ def apply_query_params(url, params):
     return url
 
 def json_loads_with_variables(json_string, variables):
-    return json.loads(json_string.format(**variables))
+    finds = re.findall('(\{\s*([\w_][\w\d_-]*)\s*\})', json_string)
+
+    if set(variables.keys()).intersection({f[1] for f in finds}):
+        for ms, k in finds:
+            json_string = json_string.replace(ms, variables[k])
+    
+    json_obj = json.loads(json_string)
+        
+    return json_obj
 
 def eval_jsonpath_func(jsonpath_s, content, variables):
     regex = f'({varname_regex})\(\s*({jsonpath_regex})\s*\)'
@@ -56,6 +64,8 @@ def eval_jsonpath_func(jsonpath_s, content, variables):
 def parse_jsonpath_with_variables(jsonpath_s, content, variables):
     if len(variables.keys()) > 0:
         jsonpath_s = jsonpath_s.format(**variables)
-        content = json.loads(json.dumps(content.format(**variables)))
+
+        content_str = json.dumps(content)
+        content = json_loads_with_variables(content_str, variables)
         
     return [m.value for m in parse(jsonpath_s).find(content)]

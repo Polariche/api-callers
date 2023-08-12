@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: api-quick
+  namespace: api-callers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: api-quick
+  namespace: api-callers
+rules:
+- apiGroups:
+  - queries.api-callers.io
+  resources:
+  - apiqueries
+  verbs:
+  - get
+  - list
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: api-quick
+  namespace: api-callers
+subjects:
+- kind: ServiceAccount
+  name: api-quick
+roleRef:
+  kind: Role
+  name: api-quick
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: api-quick
+    queries.api-callers.io/keyspace: riot
+  name: api-quick
+  namespace: api-callers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-quick
+      queries.api-callers.io/keyspace: riot
+  template:
+    metadata:
+      labels:
+        app: api-quick
+        queries.api-callers.io/keyspace: riot
+    spec:
+      serviceAccountName: api-quick
+      containers:
+      - image: api-callers:latest
+        name: api-quick
+        args: 
+        - "app.quick_query:app"
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Never
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 80
+          periodSeconds: 5
+        #livenessProbe:
+        #  httpGet:
+        #    path: /healthy
+        #    port: 80
+        #  periodSeconds: 5
