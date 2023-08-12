@@ -7,7 +7,7 @@ class Key:
         self.r = r
         self.key_id = key_id
         self.secret = ""
-        
+      
     def register(self, rate_limits):
         # rate_limits = {1:20, 120:100}   # seconds:max dict
         

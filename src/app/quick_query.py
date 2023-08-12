@@ -27,7 +27,6 @@ def post_query(query: str, params: Dict):
     except KeyError as e: 
         raise HTTPException(status_code=422, detail=f"Following variables must be defined: {e.args[0]}")
     
-    print(req.data)
     response = send_to_caller([req])[0]
     
     try:

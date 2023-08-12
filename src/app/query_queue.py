@@ -106,8 +106,6 @@ def send(count: int = 1):
     qs = {query:get_query(query) for query in set(queries)}
 
     for req, query in zip(reqs, queries):
-        print(req.url, qs[query].url)
-        print(path_params_from_url(req.url, qs[query].url))
         req.data.update(path_params_from_url(req.url, qs[query].url))
     
     results = [qs[query].get_result(response.json()['body'], data=req.data) for req, response, query in zip(reqs, responses, queries)]

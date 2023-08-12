@@ -59,10 +59,10 @@ class Query(BaseModel):
         path_params = {k:params[k] for k in path_params_keys}
         url = apply_path_params(self.url, path_params)
 
-        func = {'int': int, 'string': str}
+        typefunc = {'str': str, 'string': str, 'int': int, 'integer': int, 'float': float}
         var_values = {}
         for k,v in self.variables.items():
-            f = func[v['type']]
+            f = typefunc[v['type']]
 
             if k in params.keys():
                 var_values[k] = f(params[k])

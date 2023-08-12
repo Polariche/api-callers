@@ -79,5 +79,4 @@ def parse_jsonpath_with_variables(jsonpath_s, content, variables):
         content_str = json.dumps(content)
         content = json_loads_with_variables(content_str, variables)
     
-    print(jsonpath_s)
     return [m.value for m in parse(jsonpath_s).find(content)]
