@@ -1,5 +1,6 @@
 import os
-import itertools
+
+from lib.utils import flatten_dict
 
 keyspace = os.environ["KEYSPACE"]
 
@@ -13,7 +14,7 @@ class Key:
       
     def register(self, rate_limits):
         # rate_limits = {1:20, 120:100}   # seconds:max dict
-        self.r.hset(self.store_rate_limit, *itertools.chain(*rate_limits.items()))
+        self.r.hset(self.store_rate_limit, *flatten_dict(rate_limits))
 
     def remove(self):
         rate_limits = self.r.hkeys(self.store_rate_limit)

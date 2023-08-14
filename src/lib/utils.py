@@ -1,5 +1,7 @@
 import re
 import json
+import itertools
+
 from jsonpath_rw import jsonpath
 from jsonpath_rw_ext import parse
 
@@ -80,3 +82,6 @@ def parse_jsonpath_with_variables(jsonpath_s, content, variables):
         content = json_loads_with_variables(content_str, variables)
     
     return [m.value for m in parse(jsonpath_s).find(content)]
+
+def flatten_dict(d):
+    return itertools.chain(*d.items())
