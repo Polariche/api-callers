@@ -5,7 +5,7 @@ import requests
 import redis
 import json
 
-from app.models import *
+from lib.models import *
 
 app = FastAPI()
 

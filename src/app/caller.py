@@ -6,9 +6,9 @@ import os
 
 import kubernetes as k8s
 
-from app.api_key import Key
-from app.models import *
-from app.utils import apply_query_params
+from lib.api_key import Key
+from lib.models import *
+from lib.utils import apply_query_params
 
 r = redis.Redis(host='redis', port=6379, decode_responses=True)
 

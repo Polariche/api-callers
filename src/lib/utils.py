@@ -3,7 +3,7 @@ import json
 from jsonpath_rw import jsonpath
 from jsonpath_rw_ext import parse
 
-from app.jsonpath_functions import jsonpath_functions
+from lib.jsonpath_functions import jsonpath_functions
 
 varname_regex = '[\w_][\w\d_-]*'
 path_regex = '^(\w*://)?((?:[\w\d_-]*\.)*[\w\d_-]*)?(?:\:(\d*))?((?:/[\w\d\._-\{\}]*)*)?'

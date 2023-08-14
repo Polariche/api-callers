@@ -7,8 +7,8 @@ import json
 import os
 
 
-from app.models import *
-from app.utils import path_params_from_url
+from lib.models import *
+from lib.utils import path_params_from_url
 
 app = FastAPI()
 r = redis.Redis(host='redis', port=6379, decode_responses=True)

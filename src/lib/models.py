@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Union, Dict, List, Optional
-from app.utils import path_param_keys_from_path, apply_query_params, apply_path_params, json_loads_with_variables, eval_jsonpath_func
+from lib.utils import path_param_keys_from_path, apply_query_params, apply_path_params, json_loads_with_variables, eval_jsonpath_func
 from collections import deque
 
 import os
