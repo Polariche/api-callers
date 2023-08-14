@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: qourier-caller
+  namespace: qouriers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: qourier-caller
+  namespace: qouriers
+rules:
+- apiGroups:
+  - queries.qouriers.io
+  resources:
+  - keyspaces
+  verbs:
+  - get
+  - list
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: qourier-queue
+  namespace: qouriers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: qourier-queue
+  namespace: qouriers
+rules:
+- apiGroups:
+  - queries.qouriers.io
+  resources:
+  - apiqueries
+  verbs:
+  - get
+  - list 
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: qourier-quick
+  namespace: qouriers
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: qourier-quick
+  namespace: qouriers
+rules:
+- apiGroups:
+  - queries.qouriers.io
+  resources:
+  - apiqueries
+  verbs:
+  - get
+  - list
