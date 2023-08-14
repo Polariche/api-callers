@@ -3,7 +3,7 @@ kind: Service
 metadata:
   labels:
     app: qourier-caller
-    queries.qouriers.io/keyspace: {{ keyspace }}
+    keys.qouriers.io/keyspace: {{ keyspace }}
   name: qourier-caller-{{ keyspace }}
   namespace: qouriers
 spec:
@@ -13,6 +13,6 @@ spec:
     targetPort: 80
   selector:
     app: qourier-caller
-    queries.qouriers.io/keyspace: {{ keyspace }}
+    keys.qouriers.io/keyspace: {{ keyspace }}
 status:
   loadBalancer: {}

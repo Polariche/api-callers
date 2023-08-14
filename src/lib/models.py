@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Union, Dict, List, Optional
-from lib.utils import path_param_keys_from_path, apply_query_params, apply_path_params, json_loads_with_variables, eval_jsonpath_func
+from lib.utils import path_param_keys_from_path, apply_query_params, apply_path_params, json_loads_with_variables, eval_jsonpath_func, kube_get_keyspace
 from collections import deque
 
 import os
@@ -45,8 +45,8 @@ class Query(BaseModel):
             except AttributeError:
                 continue
         return self
-
-    def apply(self, params):
+    
+    def validate(self, params):
         path_params_keys = path_param_keys_from_path(self.url)
         required_variables = {k for k,v in self.variables.items() if v in self.variables_required and 'default' not in v.keys()}
 
@@ -56,6 +56,10 @@ class Query(BaseModel):
         if len(params_not_provided) > 0:
             raise KeyError(params_not_provided)
 
+    def apply(self, params):
+        self.validate(params)
+        
+        path_params_keys = path_param_keys_from_path(self.url)
         path_params = {k:params[k] for k in path_params_keys}
         url = apply_path_params(self.url, path_params)
 
@@ -71,36 +75,38 @@ class Query(BaseModel):
 
         if self.method == "GET":
             url = apply_query_params(url, var_values)
-            data = None
+            data = {}
         else:
             try:
                 data = json_loads_with_variables(self.data, var_values)
             except:
                 data = var_values
 
-        data_string = json.dumps(data)
-
-        return url, data_string
+        return Request(url=url, method=self.method, data=data)
 
     def get_result(self, body, data:Optional[Dict] = None, result_targets:Optional[List] = None):
         res = {}
+        
+        for readtype, resultset in self.result.items():
+            # TODO : implement HTML parsing
+            # we only have JSON for now 
+            
+            q = result_targets or [k for k in resultset.keys()]
+            q = set(q).intersection(resultset.keys())
+            q = deque(q)
 
-        q = result_targets or [k for k in self.result.keys()]
-        q = set(q).intersection(self.result.keys())
-        q = deque(q)
+            data = data or {}
 
-        data = data or {}
+            required = {k:path_param_keys_from_path(v) for k,v in resultset.items()}
 
-        required = {k:path_param_keys_from_path(v) for k,v in self.result.items()}
+            while q:
+                k = q.pop()
+                if len(required[k] - data.keys()) > 0:
+                    q.extendleft(required[k] - set(q))      # insert required parameters to the queue, if they don't exist
+                    q.appendleft(k)                         # insert self again
+                    continue
 
-        while q:
-            k = q.pop()
-            if len(required[k] - data.keys()) > 0:
-                q.extendleft(required[k] - set(q))      # insert required parameters to the queue, if they don't exist
-                q.appendleft(k)                         # insert self again
-                continue
-
-            res[k] = data[k] = eval_jsonpath_func(self.result[k], body, data)
+                res[k] = data[k] = eval_jsonpath_func(resultset[k], body, data)
 
         return res
 
@@ -110,7 +116,7 @@ def get_all_queries_from_kube():
                                                                         version="v1", 
                                                                         plural="apiqueries", 
                                                                         namespace="qouriers",
-                                                                        label_selector=f"queries.qouriers.io/keyspace={os.environ['KEYSPACE']}")['items']
+                                                                        label_selector=f"keys.qouriers.io/keyspace={kube_get_keyspace()]}")['items']
     return {q['metadata']['name']:Query().init_from_kube(q) for q in queries}
 
 def get_query_from_kube(query):
@@ -138,6 +144,6 @@ class Request(BaseModel):
 
 def send_to_caller(reqs: List[Request]):
     headers = {"Content-Type": "application/json"}
-    responses = [requests.post(f'http://qourier-caller-{os.environ["KEYSPACE"]}:80/call', headers=headers, data=json.dumps(dict(req))) for req in reqs]
+    responses = [requests.post(f'http://qourier-caller-{kube_get_keyspace()}:80/call', headers=headers, data=json.dumps(dict(req))) for req in reqs]
 
     return responses

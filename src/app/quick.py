@@ -6,24 +6,21 @@ import redis
 import json
 
 from lib.models import *
+from lib.utils import kube_get_keyspace
 
 app = FastAPI()
+app.keyspace = kube_get_keyspace()
 
 @app.post("/query/{query}")
 def post_query(query: str, params: Dict):
     try:
-        q = get_query(query)
+        q = app.queries[query]
         method = q.method
     except:
         raise HTTPException(status_code=404, detail=f"Query not found")
 
     try:
-        url, var = q.apply(params)
-        if var is not "null":
-            req = Request(url=url, method=method, data=json.loads(var))
-        else:
-            req = Request(url=url, method=method)
-
+        req = q.apply(params)
     except KeyError as e: 
         raise HTTPException(status_code=422, detail=f"Following variables must be defined: {e.args[0]}")
     
@@ -40,12 +37,14 @@ def post_query(query: str, params: Dict):
 
 @app.get("/apiqueries")
 def available_API_queries():
-    return get_all_queries()
+    # fetch and update queries
+    app.queries = get_all_queries()
+    return app.queries
 
 @app.get("/ready")
 def ready():
     try:
-        requests.get(f'http://qourier-caller-{os.environ["KEYSPACE"]}:80')
+        requests.get(f'http://qourier-caller-{app.keyspace}:80')
     except:
         raise HTTPException(status_code=500, detail=f"No API Callers are available. Please try again.")
 

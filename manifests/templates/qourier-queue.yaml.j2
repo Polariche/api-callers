@@ -16,7 +16,7 @@ kind: Deployment
 metadata:
   labels:
     app: qourier-queue
-    queries.qouriers.io/keyspace: {{ keyspace }}
+    keys.qouriers.io/keyspace: {{ keyspace }}
   name: qourier-queue-{{ keyspace }}
   namespace: qouriers
 spec:
@@ -24,12 +24,12 @@ spec:
   selector:
     matchLabels:
       app: qourier-queue
-      queries.qouriers.io/keyspace: {{ keyspace }}
+      keys.qouriers.io/keyspace: {{ keyspace }}
   template:
     metadata:
       labels:
         app: qourier-queue
-        queries.qouriers.io/keyspace: {{ keyspace }}
+        keys.qouriers.io/keyspace: {{ keyspace }}
     spec:
       serviceAccountName: qourier-queue
       containers:
@@ -43,8 +43,6 @@ spec:
         env:
           - name: QUEUE_ID
             value: queueid        # replace this later
-          - name: KEYSPACE
-            value: {{ keyspace }}
         readinessProbe:
           httpGet:
             path: /ready

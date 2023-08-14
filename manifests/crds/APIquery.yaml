@@ -31,7 +31,13 @@ spec:
                     type: string
                 result:
                   type: object
-                  x-kubernetes-preserve-unknown-fields: true
+                  properties:
+                    json:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    html:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
               required:
                 - url
                 - method

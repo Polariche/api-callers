@@ -1,8 +1,8 @@
 import os
 
-from lib.utils import flatten_dict
+from lib.utils import flatten_dict, kube_get_keyspace
 
-keyspace = os.environ["KEYSPACE"]
+keyspace = kube_get_keyspace()
 
 class Key:
     def __init__(self, r, key_id):

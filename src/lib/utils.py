@@ -10,6 +10,7 @@ from lib.jsonpath_functions import jsonpath_functions
 varname_regex = '[\w_][\w\d_-]*'
 path_regex = '^(\w*://)?((?:[\w\d_-]*\.)*[\w\d_-]*)?(?:\:(\d*))?((?:/[\w\d\._-\{\}]*)*)?'
 jsonpath_regex = '(?:\$|\.[\w_][\w\d_-]*|\[[^\[\]\s]*\])*'
+kube_name_regex = '[\w][\w\d-]*'
 
 def deconstruct_url(url):
     res = {}
@@ -85,3 +86,9 @@ def parse_jsonpath_with_variables(jsonpath_s, content, variables):
 
 def flatten_dict(d):
     return itertools.chain(*d.items())
+
+def kube_get_keyspace():
+    path = "/etc/podinfo/labels"
+    keyspace = re.findall(f'keys.qouriers.io/keyspace=\"{kube_name_regex}\"', ''.join(path.readlines()))
+    
+    return keyspace

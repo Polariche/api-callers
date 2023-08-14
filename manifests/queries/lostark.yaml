@@ -1,4 +1,4 @@
-apiVersion: queries.qouriers.io/v1
+apiVersion: keys.qouriers.io/v1
 kind: Keyspace
 metadata:
     name: lostark
@@ -16,14 +16,15 @@ metadata:
     name: max-item-level
     namespace: qouriers
     labels:
-      queries.qouriers.io/keyspace: lostark
+      keys.qouriers.io/keyspace: lostark
 spec:
     url: https://developer-lostark.game.onstove.com/characters/{characterName}/siblings
     method: GET
     result:
-      serverName: first($[?(@.CharacterName=="{characterName}")].ServerName)
-      maxLevel: max($[?(@.ServerName=="{serverName}")].ItemMaxLevel)
-      maxLevelCharacterName: first($[?(@.ItemMaxLevel=="{maxLevel}")].CharacterName)
+      json:
+        serverName: first($[?(@.CharacterName=="{characterName}")].ServerName)
+        maxLevel: max($[?(@.ServerName=="{serverName}")].ItemMaxLevel)
+        maxLevelCharacterName: first($[?(@.ItemMaxLevel=="{maxLevel}")].CharacterName)
 
 ---
 apiVersion: queries.qouriers.io/v1
@@ -32,12 +33,13 @@ metadata:
     name: expedition-level
     namespace: qouriers
     labels:
-      queries.qouriers.io/keyspace: lostark
+      keys.qouriers.io/keyspace: lostark
 spec:
     url: https://developer-lostark.game.onstove.com/armories/characters/{characterName}/profiles
     method: GET
     result:
-      expeditionLevel: first($.ExpeditionLevel)
+      json:
+        expeditionLevel: first($.ExpeditionLevel)
 
 ---
 apiVersion: queries.qouriers.io/v1
@@ -46,7 +48,7 @@ metadata:
     name: search-gem-price
     namespace: qouriers
     labels:
-      queries.qouriers.io/keyspace: lostark
+      keys.qouriers.io/keyspace: lostark
 spec:
     url: https://developer-lostark.game.onstove.com/auctions/items
     method: POST
@@ -66,7 +68,8 @@ spec:
         "SortCondition": "ASC"
       }
     result:
-      minPrice: first($.Items[:].AuctionInfo.BuyPrice)
+      json:
+        minPrice: first($.Items[:].AuctionInfo.BuyPrice)
 
 ---
 apiVersion: queries.qouriers.io/v1
@@ -75,7 +78,7 @@ metadata:
     name: search-stone-price
     namespace: qouriers
     labels:
-      queries.qouriers.io/keyspace: lostark
+      keys.qouriers.io/keyspace: lostark
 spec:
     url: https://developer-lostark.game.onstove.com/auctions/items
     method: POST
@@ -107,5 +110,6 @@ spec:
         "SortCondition": "ASC"
       }
     result:
-      prices: first($.Items[:].AuctionInfo.BuyPrice)
-      options: first($.Items[:].Options.OptionName)
+      json:
+        prices: first($.Items[:].AuctionInfo.BuyPrice)
+        options: first($.Items[:].Options.OptionName)

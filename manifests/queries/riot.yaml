@@ -1,4 +1,4 @@
-apiVersion: queries.qouriers.io/v1
+apiVersion: keys.qouriers.io/v1
 kind: Keyspace
 metadata:
     name: riot
@@ -17,12 +17,13 @@ metadata:
     name: summoner-by-name
     namespace: qouriers
     labels:
-      queries.qouriers.io/keyspace: riot
+      keys.qouriers.io/keyspace: riot
 spec:
     url: https://kr.api.riotgames.com/lol/summoner/v4/summoners/by-name/{summonerName}
     method: GET
     result:
-      puuid: first($.puuid)
+      json:
+        puuid: first($.puuid)
 ---
 apiVersion: queries.qouriers.io/v1
 kind: APIQuery
@@ -30,7 +31,7 @@ metadata:
     name: matchids-by-puuid
     namespace: qouriers
     labels:
-      queries.qouriers.io/keyspace: riot
+      keys.qouriers.io/keyspace: riot
 spec:
     url: https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids
     method: GET
@@ -50,7 +51,8 @@ spec:
         type: int
         default: '20'
     result:
-      matchids: $[:]
+      json:
+        matchids: $[:]
 ---
 apiVersion: queries.qouriers.io/v1
 kind: APIQuery
@@ -58,19 +60,20 @@ metadata:
     name: match-participants-by-matchid
     namespace: qouriers
     labels:
-      queries.qouriers.io/keyspace: riot
+      keys.qouriers.io/keyspace: riot
 spec:
     url: https://asia.api.riotgames.com/lol/match/v5/matches/{matchid}
     method: GET
     result:
-      participants: $.metadata.participants[:]
-      championIds: $.info.participants[:].championId
-      championNames: $.info.participants[:].championName
-      championLevels: $.info.participants[:].champLevel
-      kills: $.info.participants[:].kills
-      deaths: $.info.participants[:].deaths
-      assists: $.info.participants[:].assists
-      earnedGolds: $.info.participants[:].goldEarned
-      damages: $.info.participants[:].totalDamageDealtToChampions
+      json:
+        participants: $.metadata.participants[:]
+        championIds: $.info.participants[:].championId
+        championNames: $.info.participants[:].championName
+        championLevels: $.info.participants[:].champLevel
+        kills: $.info.participants[:].kills
+        deaths: $.info.participants[:].deaths
+        assists: $.info.participants[:].assists
+        earnedGolds: $.info.participants[:].goldEarned
+        damages: $.info.participants[:].totalDamageDealtToChampions
       
       

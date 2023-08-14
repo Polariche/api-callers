@@ -16,7 +16,7 @@ kind: Deployment
 metadata:
   labels:
     app: qourier-quick
-    queries.qouriers.io/keyspace: {{ keyspace }}
+    keys.qouriers.io/keyspace: {{ keyspace }}
   name: qourier-quick-{{ keyspace }}
   namespace: qouriers
 spec:
@@ -24,12 +24,12 @@ spec:
   selector:
     matchLabels:
       app: qourier-quick
-      queries.qouriers.io/keyspace: {{ keyspace }}
+      keys.qouriers.io/keyspace: {{ keyspace }}
   template:
     metadata:
       labels:
         app: qourier-quick
-        queries.qouriers.io/keyspace: {{ keyspace }}
+        keys.qouriers.io/keyspace: {{ keyspace }}
     spec:
       serviceAccountName: qourier-quick
       containers:
@@ -40,9 +40,6 @@ spec:
         ports:
         - containerPort: 80
         imagePullPolicy: Never
-        env:
-          - name: KEYSPACE
-            value: {{ keyspace }}
         readinessProbe:
           httpGet:
             path: /ready
