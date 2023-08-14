@@ -56,7 +56,7 @@ spec:
       - image: qouriers:latest
         name: caller
         args: 
-        - "app.caller:app"
+        - "app.qourier_caller:app"
         ports:
         - containerPort: 80
         imagePullPolicy: Never
@@ -70,8 +70,13 @@ spec:
             path: /ready
             port: 80
           periodSeconds: 5
-        livenessProbe:
-          httpGet:
-            path: /healthy
-            port: 80
-          periodSeconds: 3600
+        volumeMounts:
+          - name: podinfo
+            mountPath: /etc/podinfo
+      volumes:
+        - name: podinfo
+          downwardAPI:
+            items:
+              - path: "labels"
+                fieldRef:
+                  fieldPath: metadata.labels

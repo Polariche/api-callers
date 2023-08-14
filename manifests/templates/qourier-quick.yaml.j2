@@ -56,7 +56,7 @@ spec:
       - image: qouriers:latest
         name: qourier-quick
         args: 
-        - "app.quick_query:app"
+        - "app.qourier_quick:app"
         ports:
         - containerPort: 80
         imagePullPolicy: Never
@@ -68,8 +68,13 @@ spec:
             path: /ready
             port: 80
           periodSeconds: 5
-        #livenessProbe:
-        #  httpGet:
-        #    path: /healthy
-        #    port: 80
-        #  periodSeconds: 5
+        volumeMounts:
+          - name: podinfo
+            mountPath: /etc/podinfo
+      volumes:
+        - name: podinfo
+          downwardAPI:
+            items:
+              - path: "labels"
+                fieldRef:
+                  fieldPath: metadata.labels

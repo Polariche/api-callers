@@ -1,3 +1,4 @@
 manifests/secrets/*
 manifests/tmp/*
 *-secret.yaml
+src/app/api_key.py

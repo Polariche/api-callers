@@ -14,9 +14,9 @@
       with_fileglob:
         - ../manifests/templates/*.yaml.j2
 
-    - kubernetes.core.k8s:
-        state: present
-        src: "../manifests/tmp/{{ keyspace }}"
-        apply: true
+    #- kubernetes.core.k8s:
+    #    state: present
+    #    src: "../manifests/tmp/{{ keyspace }}"
+    #    apply: true
 
-    - shell: "rm -rf ../manifests/tmp/{{ keyspace }}"
+    #- shell: "rm -rf ../manifests/tmp/{{ keyspace }}"
