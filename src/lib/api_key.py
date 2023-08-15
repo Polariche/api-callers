@@ -10,8 +10,11 @@ class Key:
         self.key_id = key_id
         self.store_rate_limit = f"rate_limits:{keyspace}:{self.key_id}"
         self.store_rate_limit_count = f"rate_limit_count:{keyspace}:{self.key_id}"
-        self.secret = ""
-      
+              
+    def get_secret(self, dataname):
+        with open(f"/etc/secrets/{dataname}", "r") as f:
+            return f.readline()
+        
     def register(self, rate_limits):
         # rate_limits = {1:20, 120:100}   # seconds:max dict
         self.r.hset(self.store_rate_limit, *flatten_dict(rate_limits))

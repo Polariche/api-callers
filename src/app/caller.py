@@ -1,5 +1,4 @@
 from fastapi import FastAPI, HTTPException
-from typing import Union
 import requests
 import redis
 import os
@@ -51,16 +50,17 @@ def call(request: Request):
         headers["Content-Type"] = "application/json"
 
     try:
+        key = app.key.get_secret("key")
         inject_key_options = keyspace["spec"]["inject-key"]
 
         if "http-headers" in inject_key_options.keys():
             for k,v in inject_key_options["http-headers"].items():
-                headers[k] = v.format(key=app.key.secret)
+                headers[k] = v.format(key=key)
 
         if "query-params" in inject_key_options.keys():
             add_qparams = {}
             for k,v in inject_key_options["query-params"].items():
-                add_qparams[k] = v.format(key=app.key.secret)
+                add_qparams[k] = v.format(key=key)
             
             url = apply_query_params(url, add_qparams)
             
