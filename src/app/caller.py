@@ -8,7 +8,7 @@ import kubernetes as k8s
 
 from lib.api_key import Key
 from lib.models import *
-from lib.utils import apply_query_params
+from lib.utils import apply_query_params, kube_get_keyspace
 
 r = redis.Redis(host='redis', port=6379, decode_responses=True)
 
@@ -16,7 +16,7 @@ app = FastAPI()
 app.available = False
 
 app.key_id = os.environ['KEY_ID']
-app.keyspace = os.environ['KEYSPACE']
+app.keyspace = kube_get_keyspace()
 app.key = Key(r, app.key_id)
 
 k8s.config.load_incluster_config()
