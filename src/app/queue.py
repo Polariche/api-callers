@@ -15,7 +15,7 @@ app = FastAPI()
 r = redis.Redis(host='redis', port=6379, decode_responses=True)
 
 app.queueid = os.environ['QUEUE_ID']
-app.keyspace = kube_get_keyspace() #os.environ['KEYSPACE']
+app.keyspace = kube_get_keyspace()
 
 app.redis_queue = RedisQueue(r, app, app.queueid)
 
@@ -43,53 +43,53 @@ def post_query(query: str, params: Dict):
 
     return {"query": query, "params": params}
 
-@app.delete("/query")
-def delete_top(count: int = 1):
-    if count <= 0:
-        raise HTTPException(status_code=422, detail="count must be at least 1")
-    
-    reqs, queries = app.redis_queue.pop_requests(count=count)
-    return {"queries": queries, "requests": reqs}
-
-@app.delete("/query/{query}")
-def delete_query(query: str, count: int = 1):
+def _delete(count: int=1, query=None):
     if count <= 0:
         raise HTTPException(status_code=422, detail="count must be at least 1")
     
     reqs, queries = app.redis_queue.pop_requests(count=count, query=query)
-    return {"queries": queries, "requests": reqs}
+    
+    if len(reqs) < 1:
+        raise HTTPException(status_code=404, detail="no queries left in the query")
+    
+    return reqs, queries
+
+@app.delete("/query")
+def delete_top(count: int = 1):
+    reqs, queries = _delete(count, None)
+    return {"queries": queries, "requests": reqs} 
+
+@app.delete("/query/{query}")
+def delete_query(query: str, count: int = 1):
+    reqs, queries = _delete(count, query)
+    return {"queries": queries, "requests": reqs} 
+
+def _send(count: int=1, query=None):
+    reqs, queries = _delete(count=count, query=query)
+    responses = send_to_caller(reqs)
+
+    results = []
+    for req, response, query in zip(reqs, responses, queries):
+        q = app.queries[query]
+        req.data.update(path_params_from_url(req.url, q.url))
+        
+        try:
+            result = q.get_result(response.json()['body'], data=req.data)
+            
+        except KeyError:
+            result = {'detail': response.json()['detail']}
+            
+        results.append(result)   
+        
+    return results 
 
 @app.get("/send")
 def send(count: int = 1):
-    if count <= 0:
-            raise HTTPException(status_code=422, detail="count must be at least 1")
-        
-    reqs, queries = app.redis_queue.pop_requests(count=count)
-    responses = send_to_caller(reqs)
-
-    for req, query in zip(reqs, queries):
-        req.data.update(path_params_from_url(req.url, app.queries[query].url))
-    
-    results = [app.queries[query].get_result(response.json()['body'], data=req.data) for req, response, query in zip(reqs, responses, queries)]
-    
-    return results
+    return _send(query=None, count=count)
 
 @app.get("/send/query/{query}")
 def send_query(query: str, count: int = 1):
-    if count <= 0:
-        raise HTTPException(status_code=422, detail="count must be at least 1")
-    
-    reqs, _ = app.redis_queue.pop_requests(count=count, query=query)
-    responses = send_to_caller(reqs)
-
-    q = app.queries[query]
-
-    for req in reqs:
-        req.data.update(path_params_from_url(req.url, q.url))
-
-    results = [q.get_result(response.json()['body'], data=req.data) for req, response in zip(reqs, responses)]
-
-    return results
+    return _send(query=query, count=count)
 
 @app.get("/apiqueries")
 def available_API_queries():

@@ -1,4 +1,7 @@
 
+import json
+from collections import deque
+
 class RedisQueue:
     def __init__(self, r, app, queueid):
         self.r = r
@@ -6,10 +9,10 @@ class RedisQueue:
         self.queueid = queueid
         
     def get_queue(self):
-        return f"queue:{app.queueid}"
+        return f"queue:{self.app.queueid}"
     
     def get_queue_for_query(self, query):
-        return f"queue:{app.queueid}:{query}"
+        return f"queue:{self.app.queueid}:{query}"
     
     def peek(self):
         return {}
@@ -22,7 +25,7 @@ class RedisQueue:
         self.r.lpush(self.get_queue_for_query(query), json.dumps(params))
     
     def pop_queries(self, query, count=1):
-        return self.r.rpop(self.get_queue_for_query(query), count) 
+        return [json.loads(a) for a in self.r.rpop(self.get_queue_for_query(query), count)]
     
     def pop_requests(self, count: int = 1, query=None):
         if query is None:
@@ -33,7 +36,7 @@ class RedisQueue:
             qcounts = {q:queries.count(q) for q in set(queries)}
             reqs = {}
             for query,qcount in qcounts.items():
-                reqs[query] = deque([app.queries[query].apply(params) for params in self.pop_queries(query, qcount)])
+                reqs[query] = deque([self.app.queries[query].apply(params) for params in self.pop_queries(query, qcount)])
 
             requests = deque()
             for q in queries:
@@ -42,6 +45,6 @@ class RedisQueue:
             return list(requests), queries
         else:
             count = self.r.lrem(self.get_queue_for_query(query), -count, query)
-            requests = [app.queries[query].apply(params) for params in self.pop_queries(query, count)]
+            requests = [self.app.queries[query].apply(params) for params in self.pop_queries(query, count)]
 
             return requests, [query]*count
