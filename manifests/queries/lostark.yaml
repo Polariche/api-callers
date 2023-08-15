@@ -25,12 +25,11 @@ spec:
         serverName: first($[?(@.CharacterName=="{characterName}")].ServerName)
         maxLevel: max($[?(@.ServerName=="{serverName}")].ItemMaxLevel)
         maxLevelCharacterName: first($[?(@.ItemMaxLevel=="{maxLevel}")].CharacterName)
-
 ---
 apiVersion: queries.qouriers.io/v1
 kind: APIQuery
 metadata:
-    name: expedition-level
+    name: basic-character-info
     namespace: qouriers
     labels:
       keys.qouriers.io/keyspace: lostark
@@ -39,8 +38,19 @@ spec:
     method: GET
     result:
       json:
+        serverName: first($.ServerName)
+        itemLevel: first($.ItemMaxLevel)
+        charLevel: first($.CharacterLevel)
         expeditionLevel: first($.ExpeditionLevel)
-
+        characterImage: first($.CharacterImage)
+        townName: first($.TownName)
+        className: first($.CharacterClassName)
+        statCrit: int(first($.Stats[?(@.Type=="치명")].Value))
+        statSpecial: int(first($.Stats[?(@.Type=="특화")].Value))
+        statSwift: int(first($.Stats[?(@.Type=="신속")].Value))
+        statDom: int(first($.Stats[?(@.Type=="제압")].Value))
+        statEndure: int(first($.Stats[?(@.Type=="인내")].Value))
+        statExpert: int(first($.Stats[?(@.Type=="숙련")].Value))
 ---
 apiVersion: queries.qouriers.io/v1
 kind: APIQuery
