@@ -65,7 +65,7 @@ def json_loads_with_variables(json_string, variables):
     return json_obj
 
 def eval_jsonpath_func(jsonpath_s, content, variables):
-    regex = f'({varname_regex})\(\s*({jsonpath_regex})\s*\)'
+    regex = f'({varname_regex})\((.*)\)'
     try:
         func_name, jsonpath_s = re.findall(regex, jsonpath_s)[0]
         result = eval_jsonpath_func(jsonpath_s, content, variables)
