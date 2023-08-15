@@ -10,7 +10,7 @@ from lib.jsonpath_functions import jsonpath_functions
 varname_regex = '[\w_][\w\d_-]*'
 path_regex = '^(\w*://)?((?:[\w\d_-]*\.)*[\w\d_-]*)?(?:\:(\d*))?((?:/[\w\d\._-\{\}]*)*)?'
 jsonpath_regex = '(?:\$|\.[\w_][\w\d_-]*|\[[^\[\]\s]*\])*'
-kube_name_regex = '[\w][\w\d-]*'
+kube_name_regex = '[a-z0-9][a-z0-9-]*'
 
 def deconstruct_url(url):
     res = {}
@@ -89,6 +89,8 @@ def flatten_dict(d):
 
 def kube_get_keyspace():
     path = "/etc/podinfo/labels"
-    keyspace = re.findall(f'keys.qouriers.io/keyspace=\"{kube_name_regex}\"', ''.join(path.readlines()))
+    f = open(path, "r")
+    keyspace = re.findall(f'keys.qouriers.io/keyspace=\"({kube_name_regex})\"', ''.join(f.readlines()))[0]
+    f.close()
     
     return keyspace

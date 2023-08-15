@@ -112,11 +112,12 @@ class Query(BaseModel):
 
 def get_all_queries_from_kube():
     k8s.config.load_incluster_config()
+    keyspace = kube_get_keyspace()
     queries = k8s.client.CustomObjectsApi().list_namespaced_custom_object(group="queries.qouriers.io", 
                                                                         version="v1", 
                                                                         plural="apiqueries", 
                                                                         namespace="qouriers",
-                                                                        label_selector=f"keys.qouriers.io/keyspace={kube_get_keyspace()]}")['items']
+                                                                        label_selector=f"keys.qouriers.io/keyspace={keyspace}")['items']
     return {q['metadata']['name']:Query().init_from_kube(q) for q in queries}
 
 def get_query_from_kube(query):

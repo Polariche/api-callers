@@ -11,7 +11,7 @@ metadata:
   namespace: qouriers
 rules:
 - apiGroups:
-  - queries.qouriers.io
+  - keys.qouriers.io
   resources:
   - keyspaces
   verbs:

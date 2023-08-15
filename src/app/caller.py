@@ -20,7 +20,7 @@ app.keyspace = os.environ['KEYSPACE']
 app.key = Key(r, app.key_id)
 
 k8s.config.load_incluster_config()
-keyspace = k8s.client.CustomObjectsApi().get_namespaced_custom_object(group="queries.qouriers.io", 
+keyspace = k8s.client.CustomObjectsApi().get_namespaced_custom_object(group="keys.qouriers.io", 
                                                                         version="v1", 
                                                                         plural="keyspaces", 
                                                                         namespace="qouriers",
