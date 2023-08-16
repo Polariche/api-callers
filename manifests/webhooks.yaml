@@ -4,11 +4,12 @@ metadata:
   name: "key-manager.qouriers.io"
 webhooks:
 - name: "key-manager.qouriers.io"
+  failurePolicy: Ignore
   rules:
   - apiGroups:   [""]
     apiVersions: ["v1"]
     operations:  ["CREATE"]
-    resources:   ["services"]
+    resources:   ["pods"]
     scope:       "Namespaced"
   clientConfig:
     service:
@@ -24,11 +25,12 @@ metadata:
   name: "key-manager.qouriers.io"
 webhooks:
 - name: "key-manager.qouriers.io"
+  failurePolicy: Ignore
   rules:
   - apiGroups:   [""]
     apiVersions: ["v1"]
     operations:  ["CREATE"]
-    resources:   ["services"]
+    resources:   ["pods"]
     scope:       "Namespaced"
   clientConfig:
     service:
