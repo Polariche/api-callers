@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: qourier-key-manager
+  name: qourier-key-manager
+  namespace: qouriers
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 443
+  selector:
+    app: qourier-key-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: qourier-key-manager
+  name: qourier-key-manager
+  namespace: qouriers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qourier-key-manager
+  template:
+    metadata:
+      labels:
+        app: qourier-key-manager
+    spec:
+      containers:
+      - image: qouriers:latest
+        name: key-manager
+        args: 
+        - "app.key_manager:app"
+        - --ssl-keyfile=/etc/secrets/server.key
+        - --ssl-certfile=/etc/secrets/server.crt
+        - --port=443
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Never
+        volumeMounts:
+        - name: secrets
+          mountPath: /etc/secrets
+      volumes:
+      - name: secrets
+        projected:
+          sources:
+          - secret:
+              name: qouriers-km-secret
+              items:
+              - key: tls.key
+                path: server.key
+              - key: tls.crt
+                path: server.crt

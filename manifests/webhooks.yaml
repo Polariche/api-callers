@@ -1,0 +1,39 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: "key-manager.qouriers.io"
+webhooks:
+- name: "key-manager.qouriers.io"
+  rules:
+  - apiGroups:   [""]
+    apiVersions: ["v1"]
+    operations:  ["CREATE"]
+    resources:   ["services"]
+    scope:       "Namespaced"
+  clientConfig:
+    service:
+      namespace: "qouriers"
+      name: "qourier-key-manager"
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  timeoutSeconds: 5
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: "key-manager.qouriers.io"
+webhooks:
+- name: "key-manager.qouriers.io"
+  rules:
+  - apiGroups:   [""]
+    apiVersions: ["v1"]
+    operations:  ["CREATE"]
+    resources:   ["services"]
+    scope:       "Namespaced"
+  clientConfig:
+    service:
+      namespace: "qouriers"
+      name: "qourier-key-manager"
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  timeoutSeconds: 5
