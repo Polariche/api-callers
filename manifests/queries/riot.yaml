@@ -9,7 +9,7 @@ spec:
       '120': '100'
     inject-key:
       http-headers:
-        X-Riot-Token: '{key}'
+        X-Riot-Token: '{token}'
 ---
 apiVersion: queries.qouriers.io/v1
 kind: APIQuery

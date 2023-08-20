@@ -139,15 +139,15 @@ kubectl patch mutatingwebhookconfiguration ${webhookConfigName} \
     --type='json' -p="${mutatingPatchString}"
 
 # Patch CA Certificate to validatingWebhook
-validatingWebhookCount=$(kubectl get validatingwebhookconfiguration ${webhookConfigName} -ojson | jq -r '.webhooks' | jq length)
-validatingPatchString='['
-for i in $(seq 0 $(($validatingWebhookCount-1)))
-do
-    validatingPatchString=$validatingPatchString'{"op": "replace", "path": "/webhooks/'$i'/clientConfig/caBundle", "value":"{{CA_BUNDLE}}"}, '
-done
-validatingPatchString=${validatingPatchString%, }']'
-validatingPatchString=$(echo ${validatingPatchString} | sed "s|{{CA_BUNDLE}}|${caBundle}|g")
+#validatingWebhookCount=$(kubectl get validatingwebhookconfiguration ${webhookConfigName} -ojson | jq -r '.webhooks' | jq length)
+#validatingPatchString='['
+#for i in $(seq 0 $(($validatingWebhookCount-1)))
+#do
+#    validatingPatchString=$validatingPatchString'{"op": "replace", "path": "/webhooks/'$i'/clientConfig/caBundle", "value":"{{CA_BUNDLE}}"}, '
+#done
+#validatingPatchString=${validatingPatchString%, }']'
+#validatingPatchString=$(echo ${validatingPatchString} | sed "s|{{CA_BUNDLE}}|${caBundle}|g")
 
-echo "patching ca bundle for validating webhook configuration..."
-kubectl patch validatingwebhookconfiguration ${webhookConfigName} \
-    --type='json' -p="${validatingPatchString}"
+#echo "patching ca bundle for validating webhook configuration..."
+#kubectl patch validatingwebhookconfiguration ${webhookConfigName} \
+#    --type='json' -p="${validatingPatchString}"

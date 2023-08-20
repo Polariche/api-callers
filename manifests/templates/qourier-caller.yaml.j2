@@ -38,8 +38,6 @@ spec:
         volumeMounts:
           - name: podinfo
             mountPath: /etc/podinfo
-          - name: secrets
-            mountPath: /etc/secrets
       volumes:
         - name: podinfo
           downwardAPI:
@@ -47,8 +45,3 @@ spec:
               - path: "labels"
                 fieldRef:
                   fieldPath: metadata.labels
-        - name: secrets
-          #emptyDir:
-          #  sizeLimit: 10Mi
-          secret:
-            secretName: {{ keyspace }}

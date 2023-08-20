@@ -1,19 +1,19 @@
 import os
 
-from lib.utils import flatten_dict, kube_get_keyspace
-
-keyspace = kube_get_keyspace()
+from lib.utils import flatten_dict
 
 class Key:
     def __init__(self, r, key_id):
         self.r = r
         self.key_id = key_id
-        self.store_rate_limit = f"rate_limits:{keyspace}:{self.key_id}"
-        self.store_rate_limit_count = f"rate_limit_count:{keyspace}:{self.key_id}"
-              
-    def get_secret(self, dataname):
-        with open(f"/etc/secrets/{dataname}", "r") as f:
-            return f.readline()
+        self.store_rate_limit = f"rate_limits:{self.key_id}"
+        self.store_rate_limit_count = f"rate_limit_count:{self.key_id}"
+        
+    def get_secrets(self):
+        direc = "/var/run/secrets/qourier.io"
+        names = [f for f in os.listdir(direc) if os.path.isfile(direc+'/'+f)]
+
+        return {name: '\n'.join(open(f"{direc}/{name}", "r").readlines()) for name in names}
         
     def register(self, rate_limits):
         # rate_limits = {1:20, 120:100}   # seconds:max dict

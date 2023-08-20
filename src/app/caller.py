@@ -7,7 +7,7 @@ import kubernetes as k8s
 
 from lib.api_key import Key
 from lib.models import *
-from lib.utils import apply_query_params, kube_get_keyspace
+from lib.utils import apply_query_params, kube_get_keyspace, json_loads_with_variables
 
 r = redis.Redis(host='redis', port=6379, decode_responses=True)
 
@@ -50,17 +50,17 @@ def call(request: Request):
         headers["Content-Type"] = "application/json"
 
     try:
-        key = app.key.get_secret("key")
+        secrets = app.key.get_secrets()
         inject_key_options = keyspace["spec"]["inject-key"]
 
         if "http-headers" in inject_key_options.keys():
             for k,v in inject_key_options["http-headers"].items():
-                headers[k] = v.format(key=key)
+                headers[k] = json_loads_with_variables(json.dumps(v), secrets)
 
         if "query-params" in inject_key_options.keys():
             add_qparams = {}
             for k,v in inject_key_options["query-params"].items():
-                add_qparams[k] = v.format(key=key)
+                add_qparams[k] = json_loads_with_variables(json.dumps(v), secrets)
             
             url = apply_query_params(url, add_qparams)
             

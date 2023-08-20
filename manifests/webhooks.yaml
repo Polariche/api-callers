@@ -4,34 +4,23 @@ metadata:
   name: "key-manager.qouriers.io"
 webhooks:
 - name: "key-manager.qouriers.io"
-  failurePolicy: Ignore
+  #failurePolicy: Ignore
   rules:
   - apiGroups:   [""]
     apiVersions: ["v1"]
     operations:  ["CREATE"]
     resources:   ["pods"]
     scope:       "Namespaced"
-  clientConfig:
-    service:
-      namespace: "qouriers"
-      name: "qourier-key-manager"
-  admissionReviewVersions: ["v1", "v1beta1"]
-  sideEffects: None
-  timeoutSeconds: 5
----
-apiVersion: admissionregistration.k8s.io/v1
-kind: ValidatingWebhookConfiguration
-metadata:
-  name: "key-manager.qouriers.io"
-webhooks:
-- name: "key-manager.qouriers.io"
-  failurePolicy: Ignore
-  rules:
-  - apiGroups:   [""]
-    apiVersions: ["v1"]
-    operations:  ["CREATE"]
-    resources:   ["pods"]
-    scope:       "Namespaced"
+  objectSelector:
+    matchLabels:
+      app: qourier-caller
+    #matchExpressions:
+    #- key: "metadata.labels.app"
+    #  operator: In
+    #  values: ["qourier-caller", "qourier-queue", "qourier-quick"]
+    #- key: "type"
+    #  operator: In
+    #  values: ["keys.qouriers.io/key"]
   clientConfig:
     service:
       namespace: "qouriers"

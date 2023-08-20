@@ -8,7 +8,7 @@ spec:
       '60': '100'
     inject-key:
       http-headers:
-        authorization: 'bearer {key}'
+        authorization: 'bearer {token}'
 ---
 apiVersion: queries.qouriers.io/v1
 kind: APIQuery

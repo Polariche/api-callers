@@ -30,6 +30,7 @@ spec:
       labels:
         app: qourier-key-manager
     spec:
+      serviceAccount: qourier-key-manager
       containers:
       - image: qouriers:latest
         name: key-manager
