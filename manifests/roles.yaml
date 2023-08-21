@@ -17,6 +17,7 @@ rules:
   verbs:
   - get
   - list
+  - watch
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -34,13 +35,13 @@ roleRef:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: qourier-queue
+  name: qourier-sender
   namespace: qouriers
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: qourier-queue
+  name: qourier-sender
   namespace: qouriers
 rules:
 - apiGroups:
@@ -50,51 +51,27 @@ rules:
   verbs:
   - get
   - list 
----
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: qourier-queue
-  namespace: qouriers
-subjects:
-- kind: ServiceAccount
-  name: qourier-queue
-roleRef:
-  kind: Role
-  name: qourier-queue
-  apiGroup: rbac.authorization.k8s.io
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: qourier-quick
-  namespace: qouriers
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: qourier-quick
-  namespace: qouriers
-rules:
+  - watch
 - apiGroups:
-  - queries.qouriers.io
+  - keys.qouriers.io
   resources:
-  - apiqueries
+  - keyspaces
   verbs:
   - get
-  - list
+  - list 
+  - watch
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: qourier-quick
+  name: qourier-sender
   namespace: qouriers
 subjects:
 - kind: ServiceAccount
-  name: qourier-quick
+  name: qourier-sender
 roleRef:
   kind: Role
-  name: qourier-quick
+  name: qourier-sender
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: v1

@@ -18,7 +18,7 @@ spec:
         app: qourier-queue
         keys.qouriers.io/keyspace: {{ keyspace }}
     spec:
-      serviceAccountName: qourier-queue
+      serviceAccountName: qourier-sender
       containers:
       - image: qouriers:latest
         name: query-queue
