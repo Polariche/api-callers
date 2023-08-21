@@ -68,20 +68,20 @@ def _send(count: int=1, query=None):
     reqs, queries = _delete(count=count, query=query)
     responses = send_to_caller(reqs)
 
-    results = []
+    outputs = []
     for req, response, query in zip(reqs, responses, queries):
         q = app.queries[query]
         req.data.update(path_params_from_url(req.url, q.url))
         
         try:
-            result = q.get_result(response.json()['body'], data=req.data)
+            output = q.get_output(response.json()['body'], data=req.data)
             
         except KeyError:
-            result = {'detail': response.json()['detail']}
+            output = {'detail': response.json()['detail']}
             
-        results.append(result)   
+        outputs.append(output)   
         
-    return results 
+    return outputs 
 
 @app.get("/send")
 def send(count: int = 1):

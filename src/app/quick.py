@@ -15,7 +15,6 @@ app.keyspace = kube_get_keyspace()
 def post_query(query: str, params: Dict):
     try:
         q = app.queries[query]
-        method = q.method
     except:
         raise HTTPException(status_code=404, detail=f"Query not found")
 
@@ -31,9 +30,9 @@ def post_query(query: str, params: Dict):
     except KeyError:
         raise HTTPException(status_code=response.status_code, detail=f"Got an error message : {response.json()['detail']}")
     
-    result = q.get_result(body, data=params)
+    output = q.get_output(body, data=params)
 
-    return result
+    return output
 
 @app.get("/apiqueries")
 def available_API_queries():

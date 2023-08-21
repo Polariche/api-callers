@@ -21,7 +21,7 @@ metadata:
 spec:
     url: https://kr.api.riotgames.com/lol/summoner/v4/summoners/by-name/{summonerName}
     method: GET
-    result:
+    output:
       json:
         puuid: first($.puuid)
 ---
@@ -35,7 +35,7 @@ metadata:
 spec:
     url: https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids
     method: GET
-    variables:
+    input:
       startTime: 
         type: int
       endTime:
@@ -50,7 +50,7 @@ spec:
       count:
         type: int
         default: '20'
-    result:
+    output:
       json:
         matchids: $[:]
 ---
@@ -64,7 +64,7 @@ metadata:
 spec:
     url: https://asia.api.riotgames.com/lol/match/v5/matches/{matchid}
     method: GET
-    result:
+    output:
       json:
         participants: $.metadata.participants[:]
         championIds: $.info.participants[:].championId

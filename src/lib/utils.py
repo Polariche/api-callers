@@ -1,6 +1,7 @@
 import re
 import json
 import itertools
+import base64
 
 from jsonpath_rw import jsonpath
 from jsonpath_rw_ext import parse
@@ -94,3 +95,9 @@ def kube_get_keyspace():
     f.close()
     
     return keyspace
+
+def json_to_byte(j):
+    return base64.b64encode(json.dumps(j).encode("utf-8")).decode("utf-8")
+
+def byte_to_json(j):
+    return json.loads(base64.b64decode(j.encode("utf-8")).decode("utf-8"))

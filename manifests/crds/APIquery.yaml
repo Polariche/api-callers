@@ -22,14 +22,14 @@ spec:
                 data:
                   type: string
                   default: '{}'
-                variables:
+                input:
                   type: object
                   x-kubernetes-preserve-unknown-fields: true
                 variables-required:
                   type: array
                   items:
                     type: string
-                result:
+                output:
                   type: object
                   properties:
                     json:

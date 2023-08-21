@@ -15,10 +15,10 @@ query_kube = {
                 'name': '$.metadata.name',
                 'url': '$.spec.url',
                 'method': '$.spec.method',
-                'variables': '$.spec.variables',
-                'variables_required': '$.spec.variables-required',
+                'input': '$.spec.input',
+                'input_required': '$.spec.input-required',
                 'data': '$.spec.data',
-                'result': '$.spec.result',
+                'output': '$.spec.output',
             }
     
 def read_kube(jsonpath, kube_resource):
@@ -31,10 +31,10 @@ class Query(BaseModel):
     name: str = ''
     url: str = ''
     method: str = 'GET'
-    variables: Dict = {}
-    variables_required: List = []
+    input: Dict = {}
+    input_required: List = []
     data: str = '{}'
-    result: Dict = {}
+    output: Dict = {}
 
     def init_from_kube(self, kube_resource):
         for k,v in query_kube.items():
@@ -48,9 +48,9 @@ class Query(BaseModel):
     
     def validate(self, params):
         path_params_keys = path_param_keys_from_path(self.url)
-        required_variables = {k for k,v in self.variables.items() if v in self.variables_required and 'default' not in v.keys()}
+        required_input = {k for k,v in self.input.items() if v in self.input_required and 'default' not in v.keys()}
 
-        required_params_keys = path_params_keys.union(required_variables)
+        required_params_keys = path_params_keys.union(required_input)
         params_not_provided =  required_params_keys - set(params.keys())
 
         if len(params_not_provided) > 0:
@@ -65,7 +65,7 @@ class Query(BaseModel):
 
         typefunc = {'str': str, 'string': str, 'int': int, 'integer': int, 'float': float}
         var_values = {}
-        for k,v in self.variables.items():
+        for k,v in self.input.items():
             f = typefunc[v['type']]
 
             if k in params.keys():
@@ -84,20 +84,20 @@ class Query(BaseModel):
 
         return Request(url=url, method=self.method, data=data)
 
-    def get_result(self, body, data:Optional[Dict] = None, result_targets:Optional[List] = None):
+    def get_output(self, body, data:Optional[Dict] = None, output_targets:Optional[List] = None):
         res = {}
         
-        for readtype, resultset in self.result.items():
+        for readtype, outputset in self.output.items():
             # TODO : implement HTML parsing
             # we only have JSON for now 
             
-            q = result_targets or [k for k in resultset.keys()]
-            q = set(q).intersection(resultset.keys())
+            q = output_targets or [k for k in outputset.keys()]
+            q = set(q).intersection(outputset.keys())
             q = deque(q)
 
             data = data or {}
 
-            required = {k:path_param_keys_from_path(v) for k,v in resultset.items()}
+            required = {k:path_param_keys_from_path(v) for k,v in outputset.items()}
 
             while q:
                 k = q.pop()
@@ -106,7 +106,7 @@ class Query(BaseModel):
                     q.appendleft(k)                         # insert self again
                     continue
 
-                res[k] = data[k] = eval_jsonpath_func(resultset[k], body, data)
+                res[k] = data[k] = eval_jsonpath_func(outputset[k], body, data)
 
         return res
 

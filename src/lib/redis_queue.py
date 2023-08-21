@@ -1,6 +1,7 @@
 
 import json
 from collections import deque
+from lib.utils import json_to_byte, byte_to_json
 
 class RedisQueue:
     def __init__(self, r, app, queueid):
@@ -22,10 +23,10 @@ class RedisQueue:
     
     def post_query(self, query, params):
         self.r.lpush(self.get_queue(), query)
-        self.r.lpush(self.get_queue_for_query(query), json.dumps(params))
+        self.r.lpush(self.get_queue_for_query(query), json_to_byte(params))
     
     def pop_queries(self, query, count=1):
-        return [json.loads(a) for a in self.r.rpop(self.get_queue_for_query(query), count)]
+        return [byte_to_json(a) for a in self.r.rpop(self.get_queue_for_query(query), count)]
     
     def pop_requests(self, count: int = 1, query=None):
         if query is None:
