@@ -10,7 +10,7 @@ class Key:
         self.store_rate_limit_count = f"rate_limit_count:{self.key_id}"
         
     def get_secrets(self):
-        direc = "/var/run/secrets/qourier.io"
+        direc = os.environ["CALLER_SECRETS"]
         names = [f for f in os.listdir(direc) if os.path.isfile(direc+'/'+f)]
 
         return {name: '\n'.join(open(f"{direc}/{name}", "r").readlines()) for name in names}

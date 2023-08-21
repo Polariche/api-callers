@@ -28,8 +28,10 @@ spec:
         - containerPort: 80
         imagePullPolicy: Never
         env:
-          - name: KEY_ID
-            value: "0"        # replace this later
+          - name: CALLER_SECRETS
+            value: /var/run/secrets/qourier.io  
+          - name: REQUESTS_CA_BUNDLE            # for k8s api calls
+            value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         readinessProbe:
           httpGet:
             path: /ready
