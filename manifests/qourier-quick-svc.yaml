@@ -3,8 +3,7 @@ kind: Service
 metadata:
   labels:
     app: qourier-quick
-    keys.qouriers.io/keyspace: {{ keyspace }}
-  name: qourier-quick-{{ keyspace }}
+  name: qourier-quick
   namespace: qouriers
 spec:
   ports:
@@ -13,5 +12,4 @@ spec:
     targetPort: 80
   selector:
     app: qourier-quick
-    keys.qouriers.io/keyspace: {{ keyspace }}
   type: NodePort

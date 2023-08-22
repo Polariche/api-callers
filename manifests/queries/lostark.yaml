@@ -4,6 +4,7 @@ metadata:
     name: lostark
     namespace: qouriers
 spec:
+    requires-key: true
     default-limit-rate:
       '60': '100'
     inject-key:

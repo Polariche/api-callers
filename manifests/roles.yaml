@@ -1,9 +1,3 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: qourier-caller
-  namespace: qouriers
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -17,26 +11,6 @@ rules:
   verbs:
   - get
   - list
-  - watch
----
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: qourier-caller
-  namespace: qouriers
-subjects:
-- kind: ServiceAccount
-  name: qourier-caller
-roleRef:
-  kind: Role
-  name: qourier-caller
-  apiGroup: rbac.authorization.k8s.io
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: qourier-sender
-  namespace: qouriers
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -50,35 +24,7 @@ rules:
   - apiqueries
   verbs:
   - get
-  - list 
-  - watch
-- apiGroups:
-  - keys.qouriers.io
-  resources:
-  - keyspaces
-  verbs:
-  - get
-  - list 
-  - watch
----
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: qourier-sender
-  namespace: qouriers
-subjects:
-- kind: ServiceAccount
-  name: qourier-sender
-roleRef:
-  kind: Role
-  name: qourier-sender
-  apiGroup: rbac.authorization.k8s.io
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: qourier-key-manager
-  namespace: qouriers
+  - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -109,16 +55,3 @@ rules:
   verbs:
   - list
   - patch
----
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: qourier-key-manager
-subjects:
-- kind: ServiceAccount
-  namespace: qouriers
-  name: qourier-key-manager
-roleRef:
-  kind: ClusterRole
-  name: qourier-key-manager
-  apiGroup: rbac.authorization.k8s.io

@@ -8,6 +8,7 @@ import redis
 
 from lib.api_key import Key
 from lib.models import *
+from lib.utils import json_to_byte
 
 app = FastAPI()
 k8s.config.load_incluster_config()
@@ -51,24 +52,29 @@ def on_pod_creation(pod):
     return False, f"The keyspace \'{keyspace}\' does not exist", []
 
   if labels['app'] == 'qourier-caller':
-    for i in range(5):
-      secrets = list_secrets(keyspace)
-      if len(secrets) > 0:
-        break
-      else:
-        time.sleep(0.5)
-      
-    if len(secrets) == 0:
-      return False, f"No remaining Secrets left in the keyspace \'{keyspace}\'", []
-    
     patch_obj = []
-    secret = list(secrets)[0]
+    keyspace_obj = get_keyspace(keyspace)
+    secret = None
     
-    # patch secret
-    # TODO: some k8s code to patch the secret
+    if keyspace_obj["spec"]["requires-key"] == True:
+      for i in range(5):
+        secrets = list_secrets(keyspace)
+        if len(secrets) > 0:
+          break
+        else:
+          time.sleep(0.5)
+        
+      if len(secrets) == 0:
+        return False, f"No remaining Secrets left in the keyspace \'{keyspace}\'", []
+
+      secret = list(secrets)[0]
+    
+      # patch secret
+      # TODO: some k8s code to patch the secret
     
     # add volumeMount for every container
     for i, container in enumerate(pod['spec']['containers']):
+      # mount secrets
       try: 
         mnt = container["volumeMounts"]
       except KeyError:
@@ -76,19 +82,45 @@ def on_pod_creation(pod):
       mnt.append({"name": "qourier-key-secret", "mountPath": "/var/run/secrets/qourier.io"})
       patch_obj.append({"op": "replace", "path": f"/spec/containers/{i}/volumeMounts", "value": mnt})
       
-      j = [j for j,v in enumerate(container["env"]) if v["name"] == "KEY_ID"][0]
-      patch_obj.append({"op": "replace", "path": f"/spec/containers/{i}/env/{j}/value", "value": secret})
+      # mount envs
+      try: 
+        env = container["env"]
+      except KeyError:
+        env = []
+        
+      def replace_or_create_env(name, value):
+        env_obj = {"name": name, "value": value}
+        try:
+          j = [j for j,v in enumerate(env) if v["name"] == name][0]
+          env[j] = env_obj
+        except IndexError:
+          env.append(env_obj)
+        
+      if "env" in keyspace_obj["spec"].keys():
+        keyspace_env = keyspace_obj["spec"]["env"]
+        for e in keyspace_env:
+          replace_or_create_env(e["name"], e["value"])
+        
+      if secret is not None:
+        replace_or_create_env("KEY_ID", secret)
+        
+      patch_obj.append({"op": "replace", "path": f"/spec/containers/{i}/env", "value": env})
     
     # add a new volume for mounting secret
     try:
       volumes = pod['spec']['volumes']
     except KeyError:
       volumes = []
-    volumes.append({"name": "qourier-key-secret", 
-                    "secret": {
-                        "secretName": secret
-                      }
-                    })
+    if secret is not None:
+      volumes.append({"name": "qourier-key-secret", 
+                      "secret": {
+                          "secretName": secret
+                        }
+                      })
+    else:
+      volumes.append({"name": "qourier-key-secret", 
+                "emptyDir": {}
+                })
     
     patch_obj.append({"op": "replace", "path": "/spec/volumes", "value": volumes})
     
@@ -159,6 +191,6 @@ def root(review: Dict):
     
     if len(patch_obj) > 0:
       admission["response"]["patchType"] = "JSONPatch"
-      admission["response"]["patch"] = base64.b64encode(json.dumps(patch_obj).encode("utf-8")).decode("utf-8")   # encode with base64
+      admission["response"]["patch"] = json_to_byte(patch_obj)   # encode with base64
  
     return admission

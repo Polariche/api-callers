@@ -6,10 +6,8 @@ import redis
 import json
 
 from lib.models import *
-from lib.utils import kube_get_keyspace
 
 app = FastAPI()
-app.keyspace = kube_get_keyspace()
 
 @app.post("/query/{query}")
 def post_query(query: str, params: Dict):
@@ -23,7 +21,7 @@ def post_query(query: str, params: Dict):
     except KeyError as e: 
         raise HTTPException(status_code=422, detail=f"Following variables must be defined: {e.args[0]}")
     
-    response = send_to_caller([req])[0]
+    response = send_to_caller([req], [q.keyspace])[0]
     
     try:
         body = response.json()['body']
@@ -42,10 +40,10 @@ def available_API_queries():
 
 @app.get("/ready")
 def ready():
-    try:
-        requests.get(f'http://qourier-caller-{app.keyspace}:80')
-    except:
-        raise HTTPException(status_code=500, detail=f"No API Callers are available. Please try again.")
+    #try:
+    #    requests.get(f'http://qourier-caller-{app.keyspace}:80')
+    #except:
+    #    raise HTTPException(status_code=500, detail=f"No API Callers are available. Please try again.")
 
     return "ready"
 

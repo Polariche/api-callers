@@ -1,45 +1,54 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: qourier-quick
+  namespace: qouriers
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: qourier-quick
+  namespace: qouriers
+subjects:
+- kind: ServiceAccount
+  name: qourier-quick
+roleRef:
+  kind: Role
+  name: qourier-sender
+  apiGroup: rbac.authorization.k8s.io
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: qourier-queue
-    keys.qouriers.io/keyspace: {{ keyspace }}
-  name: qourier-queue-{{ keyspace }}
+    app: qourier-quick
+  name: qourier-quick
   namespace: qouriers
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: qourier-queue
-      keys.qouriers.io/keyspace: {{ keyspace }}
+      app: qourier-quick
   template:
     metadata:
       labels:
-        app: qourier-queue
-        keys.qouriers.io/keyspace: {{ keyspace }}
+        app: qourier-quick
     spec:
-      serviceAccountName: qourier-sender
+      serviceAccountName: qourier-quick
       containers:
       - image: qouriers:latest
-        name: query-queue
+        name: qourier-quick
         args: 
-        - "app.queue:app"
+        - "app.quick:app"
         ports:
         - containerPort: 80
         imagePullPolicy: Never
-        env:
-          - name: QUEUE_ID
-            value: queueid        # replace this later
         readinessProbe:
-          httpGet:
-            path: /ready
-            port: 80
-          periodSeconds: 5
-        livenessProbe:
           httpGet:
             path: /apiqueries
             port: 80
-          periodSeconds: 10
+          periodSeconds: 60
+          timeoutSeconds: 5
         volumeMounts:
           - name: podinfo
             mountPath: /etc/podinfo

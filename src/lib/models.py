@@ -13,6 +13,7 @@ from jsonpath_rw_ext import parse
 
 query_kube = {
                 'name': '$.metadata.name',
+                'keyspace': '$.metadata.labels["keys.qouriers.io/keyspace"]',
                 'url': '$.spec.url',
                 'method': '$.spec.method',
                 'input': '$.spec.input',
@@ -29,6 +30,7 @@ def read_kube(jsonpath, kube_resource):
 
 class Query(BaseModel):
     name: str = ''
+    keyspace: str = ''
     url: str = ''
     method: str = 'GET'
     input: Dict = {}
@@ -110,14 +112,17 @@ class Query(BaseModel):
 
         return res
 
-def get_all_queries_from_kube():
+def get_all_queries_from_kube(keyspace=None):
+    kwargs = {}
+    #if keyspace != None:
+    #    kwargs = {"label_selector": f"keys.qouriers.io/keyspace={keyspace}"}
+    
     k8s.config.load_incluster_config()
-    keyspace = kube_get_keyspace()
     queries = k8s.client.CustomObjectsApi().list_namespaced_custom_object(group="queries.qouriers.io", 
                                                                         version="v1", 
                                                                         plural="apiqueries", 
-                                                                        namespace="qouriers",
-                                                                        label_selector=f"keys.qouriers.io/keyspace={keyspace}")['items']
+                                                                        namespace="qouriers")['items']
+    
     return {q['metadata']['name']:Query().init_from_kube(q) for q in queries}
 
 def get_query_from_kube(query):
@@ -143,8 +148,8 @@ class Request(BaseModel):
     data: Dict = {}
     headers: Dict = {}
 
-def send_to_caller(reqs: List[Request]):
+def send_to_caller(reqs: List[Request], keyspaces: List[str]):
     headers = {"Content-Type": "application/json"}
-    responses = [requests.post(f'http://qourier-caller-{kube_get_keyspace()}:80/call', headers=headers, data=json.dumps(dict(req))) for req in reqs]
+    responses = [requests.post(f'http://qourier-caller-{keyspace}:80/call', headers=headers, data=json.dumps(dict(req))) for req,keyspace in zip(reqs, keyspaces)]
 
     return responses

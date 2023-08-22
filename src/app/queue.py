@@ -9,13 +9,12 @@ import os
 
 from lib.models import *
 from lib.redis_queue import RedisQueue
-from lib.utils import path_params_from_url, kube_get_keyspace
+from lib.utils import path_params_from_url
 
 app = FastAPI()
 r = redis.Redis(host='redis', port=6379, decode_responses=True)
 
 app.queueid = os.environ['QUEUE_ID']
-app.keyspace = kube_get_keyspace()
 
 app.redis_queue = RedisQueue(r, app, app.queueid)
 
@@ -66,7 +65,8 @@ def delete_query(query: str, count: int = 1):
 
 def _send(count: int=1, query=None):
     reqs, queries = _delete(count=count, query=query)
-    responses = send_to_caller(reqs)
+    keyspaces = [app.queries[q].keyspace for q in queries]
+    responses = send_to_caller(reqs, keyspaces)
 
     outputs = []
     for req, response, query in zip(reqs, responses, queries):
@@ -99,10 +99,10 @@ def available_API_queries():
 
 @app.get("/ready")
 def ready():
-    try:
-        requests.get(f'http://qourier-caller-{app.keyspace}:80')
-    except:
-        raise HTTPException(status_code=500, detail=f"No API Callers are available. Please try again.")
+    #try:
+    #    requests.get(f'http://qourier-caller-{app.keyspace}:80')
+    #except:
+    #    raise HTTPException(status_code=500, detail=f"No API Callers are available. Please try again.")
 
     return "ready"
 

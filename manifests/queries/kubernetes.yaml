@@ -1,0 +1,18 @@
+apiVersion: keys.qouriers.io/v1
+kind: Keyspace
+metadata:
+    name: kubernetes
+    namespace: qouriers
+spec:
+    requires-key: false
+    env:
+    - name: REQUESTS_CA_BUNDLE
+      value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    - name: KEY_ID
+      value: caller-serviceaccount
+    - name: CALLER_SECRETS
+      value: /var/run/secrets/kubernetes.io/serviceaccount
+      
+    inject-key:
+      http-headers:
+        authorization: 'bearer {token}'

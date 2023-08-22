@@ -15,6 +15,18 @@ spec:
             spec:
               type: object
               properties:
+                requires-key:
+                  type: boolean
+                  default: false
+                env:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: 
+                        type: string
+                      value: 
+                        type: string
                 default-limit-rate:
                   type: object
                   x-kubernetes-preserve-unknown-fields: true

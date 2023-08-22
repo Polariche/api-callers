@@ -8,7 +8,7 @@ webhooks:
   rules:
   - apiGroups:   [""]
     apiVersions: ["v1"]
-    operations:  ["CREATE"]
+    operations:  ["CREATE", "DELETE"]
     resources:   ["pods"]
     scope:       "Namespaced"
   objectSelector:
