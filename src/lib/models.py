@@ -17,7 +17,6 @@ query_kube = {
                 'url': '$.spec.url',
                 'method': '$.spec.method',
                 'input': '$.spec.input',
-                'input_required': '$.spec.input-required',
                 'data': '$.spec.data',
                 'output': '$.spec.output',
             }
@@ -34,7 +33,6 @@ class Query(BaseModel):
     url: str = ''
     method: str = 'GET'
     input: Dict = {}
-    input_required: List = []
     data: str = '{}'
     output: Dict = {}
 
@@ -50,7 +48,7 @@ class Query(BaseModel):
     
     def validate(self, params):
         path_params_keys = path_param_keys_from_path(self.url)
-        required_input = {k for k,v in self.input.items() if v in self.input_required and 'default' not in v.keys()}
+        required_input = {k for k,v in self.input.items() if 'required' in v.keys() and 'default' not in v.keys()}
 
         required_params_keys = path_params_keys.union(required_input)
         params_not_provided =  required_params_keys - set(params.keys())
