@@ -55,3 +55,9 @@ rules:
   verbs:
   - list
   - patch
+- apiGroups:
+  - admissionregistration.k8s.io
+  resources:
+  - mutatingwebhookconfigurations
+  verbs:
+  - patch

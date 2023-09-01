@@ -1,4 +1,54 @@
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qourier-km-cm
+  namespace: qouriers
+data:
+  self-serve.sh: |
+    apk update;
+    apk add openssl;
+
+    export tmpdir=$(mktemp -d);
+    export namespace=$(cat /etc/configs/namespace);
+    export service=$(cat /etc/configs/labels | grep app | sed -E "s/app=\"(.*)\"/\1/");
+
+    cp /etc/configs/csr.conf ${tmpdir}/csr.conf
+    sed -i "s/{{service}}/${service}/g" ${tmpdir}/csr.conf;
+    sed -i "s/{{namespace}}/${namespace}/g" ${tmpdir}/csr.conf;
+
+    cat ${tmpdir}/csr.conf
+
+    openssl genrsa -out ${tmpdir}/ca.key 2048;
+    openssl req -x509 -newkey rsa:2048 -key ${tmpdir}/ca.key -out ${tmpdir}/ca.crt -days 365 -nodes -subj "/CN=${service}.${namespace}.svc";
+
+    openssl genrsa -out ${tmpdir}/server.key 2048;
+    openssl req -new -key ${tmpdir}/server.key -subj "/CN=${service}.${namespace}.svc" -out ${tmpdir}/server.csr -config ${tmpdir}/csr.conf;
+
+    openssl x509 -extensions v3_req -req -days 365 -in ${tmpdir}/server.csr -CA ${tmpdir}/ca.crt -CAkey ${tmpdir}/ca.key -CAcreateserial -out ${tmpdir}/server.crt -extfile ${tmpdir}/csr.conf;
+
+    mv ${tmpdir}/server.key /etc/secrets/server.key;
+    mv ${tmpdir}/server.crt /etc/secrets/server.crt;
+
+    cat ${tmpdir}/ca.crt | openssl enc -a -A > /etc/secrets/cabundle;
+
+  csr.conf: |
+    [req]
+    req_extensions = v3_req
+    distinguished_name = req_distinguished_name
+    [req_distinguished_name]
+    [ v3_req ]
+    basicConstraints = CA:FALSE
+    keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+    extendedKeyUsage = serverAuth
+    subjectAltName = @alt_names
+    [alt_names]
+    DNS.1 = {{service}}
+    DNS.2 = {{service}}.{{namespace}}
+    DNS.3 = {{service}}.{{namespace}}.svc
+    DNS.4 = {{service}}.{{namespace}}.svc.cluster
+    DNS.5 = {{service}}.{{namespace}}.svc.cluster.local
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: qourier-key-manager
@@ -50,6 +100,20 @@ spec:
         app: qourier-key-manager
     spec:
       serviceAccount: qourier-key-manager
+      initContainers:
+      - image: alpine:latest
+        name: create-keys
+        command:
+        - sh
+        args: 
+        - /etc/configs/self-serve.sh
+
+        volumeMounts:
+        - name: secrets
+          mountPath: /etc/secrets
+        - name: configs
+          mountPath: /etc/configs
+
       containers:
       - image: qouriers:latest
         name: key-manager
@@ -64,14 +128,26 @@ spec:
         volumeMounts:
         - name: secrets
           mountPath: /etc/secrets
+          
       volumes:
       - name: secrets
+        emptyDir:
+          {}
+      - name: configs
         projected:
           sources:
-          - secret:
-              name: qouriers-km-secret
+          - downwardAPI:
               items:
-              - key: tls.key
-                path: server.key
-              - key: tls.crt
-                path: server.crt
+              - path: "namespace"
+                fieldRef:
+                  fieldPath: metadata.namespace
+              - path: "labels"
+                fieldRef:
+                  fieldPath: metadata.labels
+          - configMap:
+              name: qourier-km-cm
+              items:
+                - key: csr.conf
+                  path: csr.conf
+                - key: self-serve.sh
+                  path: self-serve.sh

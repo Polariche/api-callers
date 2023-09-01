@@ -15,6 +15,15 @@ k8s.config.load_incluster_config()
 
 r = redis.Redis(host='redis', port=6379, decode_responses=True)
 
+def init():
+  cabundle = ''.join(open("/etc/secrets/cabundle", "r").readlines())
+  name = "key-manager.qouriers.io"
+  patch_obj = [{"op": "replace", "path": "/webhooks/0/clientConfig/caBundle", "value": cabundle}]
+
+  k8s.client.AdmissionregistrationV1Api().patch_mutating_webhook_configuration(name, patch_obj)
+
+init()
+
 def list_secrets(keyspace):
   # TODO: some k8s code for searching secrets 
   # with keys.qouriers.io/keyspace=={keyspace} , occupying_pod==''
@@ -176,7 +185,9 @@ def root(review: Dict):
     result, reason, patch_obj = validate(review)
     if result:
       reason = "Admitted"
-      
+
+    print(result, reason, patch_obj)
+
     admission = {
       "kind": "AdmissionReview",
       "apiVersion": "admission.k8s.io/v1",
