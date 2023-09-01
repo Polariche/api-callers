@@ -4,10 +4,10 @@ metadata:
     name: lostark
     namespace: qouriers
 spec:
-    requires-key: true
+    requires-secret: true
     default-limit-rate:
       '60': '100'
-    inject-key:
+    inject-secret:
       http-headers:
         authorization: 'bearer {token}'
 ---

@@ -56,7 +56,7 @@ def on_pod_creation(pod):
     keyspace_obj = get_keyspace(keyspace)
     secret = None
     
-    if keyspace_obj["spec"]["requires-key"] == True:
+    if keyspace_obj["spec"]["requires-secret"] == True:
       for i in range(5):
         secrets = list_secrets(keyspace)
         if len(secrets) > 0:

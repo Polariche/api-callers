@@ -4,7 +4,7 @@ metadata:
     name: kubernetes
     namespace: qouriers
 spec:
-    requires-key: false
+    requires-secret: false
     env:
     - name: REQUESTS_CA_BUNDLE
       value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
@@ -13,6 +13,6 @@ spec:
     - name: CALLER_SECRETS
       value: /var/run/secrets/kubernetes.io/serviceaccount
       
-    inject-key:
+    inject-secret:
       http-headers:
         authorization: 'bearer {token}'

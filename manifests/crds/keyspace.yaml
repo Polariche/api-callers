@@ -15,7 +15,7 @@ spec:
             spec:
               type: object
               properties:
-                requires-key:
+                requires-secret:
                   type: boolean
                   default: false
                 env:
@@ -30,7 +30,7 @@ spec:
                 default-limit-rate:
                   type: object
                   x-kubernetes-preserve-unknown-fields: true
-                inject-key:
+                inject-secret:
                   type: object
                   properties:
                     http-headers:
