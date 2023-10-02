@@ -1,31 +1,12 @@
 from pydantic import BaseModel
 from typing import Union, Dict, List, Optional
-from lib.utils import path_param_keys_from_path, apply_query_params, apply_path_params, json_loads_with_variables, eval_jsonpath_func, kube_get_keyspace
+from lib.utils import path_param_keys_from_path, apply_query_params, apply_path_params, json_loads_with_variables, eval_jsonpath_func
+from lib.kube_utils import kube_query_jsonpath, kube_load_query, kube_get_queries
+
 from collections import deque
-
-import os
-
-import kubernetes as k8s
 import requests
 
 import json
-from jsonpath_rw_ext import parse
-
-query_kube = {
-                'name': '$.metadata.name',
-                'keyspace': '$.metadata.labels["keys.qouriers.io/keyspace"]',
-                'url': '$.spec.url',
-                'method': '$.spec.method',
-                'input': '$.spec.input',
-                'data': '$.spec.data',
-                'output': '$.spec.output',
-            }
-    
-def read_kube(jsonpath, kube_resource):
-    try:
-        return parse(jsonpath).find(kube_resource)[0].value
-    except IndexError:
-        raise AttributeError
 
 class Query(BaseModel):
     name: str = ''
@@ -37,9 +18,9 @@ class Query(BaseModel):
     output: Dict = {}
 
     def init_from_kube(self, kube_resource):
-        for k,v in query_kube.items():
+        for k,v in kube_query_jsonpath.items():
             try:
-                value = read_kube(v, kube_resource)
+                value = kube_load_query(v, kube_resource)
                 setattr(self, k, value)
 
             except AttributeError:
@@ -110,35 +91,10 @@ class Query(BaseModel):
 
         return res
 
-def get_all_queries_from_kube(keyspace=None):
-    kwargs = {}
-    #if keyspace != None:
-    #    kwargs = {"label_selector": f"keys.qouriers.io/keyspace={keyspace}"}
-    
-    k8s.config.load_incluster_config()
-    queries = k8s.client.CustomObjectsApi().list_namespaced_custom_object(group="queries.qouriers.io", 
-                                                                        version="v1", 
-                                                                        plural="apiqueries", 
-                                                                        namespace="qouriers")['items']
-    
-    return {q['metadata']['name']:Query().init_from_kube(q) for q in queries}
-
-def get_query_from_kube(query):
-    k8s.config.load_incluster_config()
-    q = k8s.client.CustomObjectsApi().get_namespaced_custom_object(group="queries.qouriers.io", 
-                                                                        version="v1", 
-                                                                        plural="apiqueries", 
-                                                                        namespace="qouriers",
-                                                                        name=query)
-    return Query().init_from_kube(q)
-
 def get_all_queries():
     # TODO : support query database other than kube crd
-    return get_all_queries_from_kube()
-
-def get_query(query):
-    # TODO : support query database other than kube crd
-    return get_query_from_kube(query)
+    queries = kube_get_queries()
+    return {q['metadata']['name']:Query().init_from_kube(q) for q in queries}
 
 class Request(BaseModel):
     url: str
