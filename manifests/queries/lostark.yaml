@@ -124,3 +124,32 @@ spec:
       json:
         prices: first($.Items[:].AuctionInfo.BuyPrice)
         options: first($.Items[:].Options.OptionName)
+---
+apiVersion: queries.qouriers.io/v1
+kind: APIQuery
+metadata:
+    name: search-market
+    namespace: qouriers
+    labels:
+      keys.qouriers.io/keyspace: lostark
+spec:
+    url: https://developer-lostark.game.onstove.com/markets/items
+    method: POST
+    input:
+      itemName:
+        type: string
+        required: true
+      categoryCode:
+        type: int
+        required: true
+    data: |
+        {
+          "Sort": "GRADE",
+          "CategoryCode": {categoryCode},
+          "ItemName": "{itemName}",
+          "PageNo": 0,
+          "SortCondition": "ASC"
+        }
+    output:
+      json:
+        minPrice: first($.Items[:].CurrentMinPrice)
