@@ -1,9 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from typing import Union, Dict, List
 from collections import deque
-import requests
 import redis
-import json
 import os
 
 
@@ -18,15 +16,15 @@ app.queueid = os.environ['QUEUE_ID']
 
 app.redis_queue = RedisQueue(r, app, app.queueid)
 
-@app.get("/query")
+@app.get("/queue/query")
 def top():
     return app.redis_queue.peek()
 
-@app.get("/query/{query}")
+@app.get("/queue/query/{query}")
 def top_query(query: str):
     return app.redis_queue.peek_query(query)
 
-@app.post("/query/{query}")
+@app.post("/queue/query/{query}")
 def post_query(query: str, params: Dict):
     try:
         query_model = app.queries[query]
@@ -53,12 +51,12 @@ def _delete(count: int=1, query=None):
     
     return reqs, queries
 
-@app.delete("/query")
+@app.delete("/queue/query")
 def delete_top(count: int = 1):
     reqs, queries = _delete(count, None)
     return {"queries": queries, "requests": reqs} 
 
-@app.delete("/query/{query}")
+@app.delete("/queue/query/{query}")
 def delete_query(query: str, count: int = 1):
     reqs, queries = _delete(count, query)
     return {"queries": queries, "requests": reqs} 
@@ -83,13 +81,38 @@ def _send(count: int=1, query=None):
         
     return outputs 
 
-@app.get("/send")
+@app.get("/queue/send")
 def send(count: int = 1):
     return _send(query=None, count=count)
 
-@app.get("/send/query/{query}")
+@app.get("/queue/send/query/{query}")
 def send_query(query: str, count: int = 1):
     return _send(query=query, count=count)
+
+
+@app.post("/quick/query/{query}")
+def quick_query(query: str, params: Dict):
+    try:
+        q = app.queries[query]
+    except:
+        raise HTTPException(status_code=404, detail=f"Query not found")
+
+    try:
+        req = q.apply(params)
+    except KeyError as e: 
+        raise HTTPException(status_code=422, detail=f"Following variables must be defined: {e.args[0]}")
+    
+    response = send_to_caller([req], [q.keyspace])[0]
+    
+    try:
+        body = response.json()['body']
+    except KeyError:
+        raise HTTPException(status_code=response.status_code, detail=f"Got an error message : {response.json()['detail']}")
+    
+    output = q.get_output(body, data=params)
+
+    return output
+
 
 @app.get("/apiqueries")
 def available_API_queries():

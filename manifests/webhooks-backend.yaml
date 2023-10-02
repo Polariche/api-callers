@@ -115,7 +115,7 @@ spec:
           mountPath: /etc/configs
 
       containers:
-      - image: qouriers:latest
+      - image: polariche/qouriers:latest
         name: key-manager
         args: 
         - "app.key_manager:app"
@@ -124,7 +124,6 @@ spec:
         - --port=443
         ports:
         - containerPort: 80
-        imagePullPolicy: Never
         volumeMounts:
         - name: secrets
           mountPath: /etc/secrets

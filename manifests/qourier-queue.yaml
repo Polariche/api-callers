@@ -36,13 +36,12 @@ spec:
     spec:
       serviceAccountName: qourier-queue
       containers:
-      - image: qouriers:latest
+      - image: polariche/qouriers:latest
         name: query-queue
         args: 
         - "app.queue:app"
         ports:
         - containerPort: 80
-        imagePullPolicy: Never
         env:
           - name: QUEUE_ID
             value: queueid        # replace this later
