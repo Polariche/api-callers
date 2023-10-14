@@ -33,10 +33,15 @@ def call(request: Request, keyspace: Dict, secrets: Dict):
         pass
     
     response = requests.request(url=url, method=method, headers=headers, **data_dict)  
-    
-    print(url, method, headers)
 
     if response.status_code > 300:
         raise HTTPException(status_code=response.status_code, detail=f"{response.json()}")
 
-    return {"status_code": response.status_code, "headers": response.headers, "body": response.json()}
+    result = {"status_code": response.status_code, "headers": response.headers}
+    
+    if response.headers["Content-Type"].startswith("text/html"):
+        result["body"] = response.text
+    elif response.headers["Content-Type"].startswith("application/json"):
+        result["body"] = response.json()
+        
+    return result

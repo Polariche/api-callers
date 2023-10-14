@@ -1,0 +1,32 @@
+apiVersion: keys.qouriers.io/v1
+kind: Keyspace
+metadata:
+    name: dvc-pat
+    namespace: qouriers
+spec:
+    requires-secret: false
+    env:
+    - name: KEY_ID
+      value: dvc-pat-key
+---
+apiVersion: queries.qouriers.io/v1
+kind: APIQuery
+metadata:
+    name: pat-dragon
+    namespace: qouriers
+    labels:
+      keys.qouriers.io/keyspace: dvc-pat
+spec:
+    url: "https://dragon.dvc.land/view/kr"
+    method: GET
+    input:
+      args:
+        id: 
+          type: str
+          required: True
+    output:
+      parseType: html
+      args:
+        views: int(first(.getAndViewContainer > .viewText > span))
+      
+      

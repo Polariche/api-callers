@@ -22,7 +22,7 @@ spec:
     url: https://developer-lostark.game.onstove.com/characters/{characterName}/siblings
     method: GET
     output:
-      json:
+      args:
         serverName: first($[?(@.CharacterName=="{characterName}")].ServerName)
         maxLevel: max($[?(@.ServerName=="{serverName}")].ItemMaxLevel)
         maxLevelCharacterName: first($[?(@.ItemMaxLevel=="{maxLevel}")].CharacterName)
@@ -38,7 +38,7 @@ spec:
     url: https://developer-lostark.game.onstove.com/armories/characters/{characterName}/profiles
     method: GET
     output:
-      json:
+      args:
         serverName: first($.ServerName)
         itemLevel: first($.ItemMaxLevel)
         charLevel: first($.CharacterLevel)
@@ -64,12 +64,13 @@ spec:
     url: https://developer-lostark.game.onstove.com/auctions/items
     method: POST
     input:
-      level:
-        type: int
-        required: true
-      gemtype:
-        type: string
-        required: true
+      args:
+        level:
+          type: int
+          required: true
+        gemtype:
+          type: string
+          required: true
     data: |
       {
         "Sort": "BUY_PRICE",
@@ -79,7 +80,7 @@ spec:
         "SortCondition": "ASC"
       }
     output:
-      json:
+      args:
         minPrice: first($.Items[:].AuctionInfo.BuyPrice)
 
 ---
@@ -94,12 +95,13 @@ spec:
     url: https://developer-lostark.game.onstove.com/auctions/items
     method: POST
     input:
-      stoneValue1:
-        type: int
-        required: true
-      stoneValue2:
-        type: int
-        required: true
+      args:
+        stoneValue1:
+          type: int
+          required: true
+        stoneValue2:
+          type: int
+          required: true
     data: |
       {
         "EtcOptions": 
@@ -121,7 +123,7 @@ spec:
         "SortCondition": "ASC"
       }
     output:
-      json:
+      args:
         prices: first($.Items[:].AuctionInfo.BuyPrice)
         options: first($.Items[:].Options.OptionName)
 ---
@@ -136,12 +138,13 @@ spec:
     url: https://developer-lostark.game.onstove.com/markets/items
     method: POST
     input:
-      itemName:
-        type: string
-        required: true
-      categoryCode:
-        type: int
-        required: true
+      args:
+        itemName:
+          type: string
+          required: true
+        categoryCode:
+          type: int
+          required: true
     data: |
         {
           "Sort": "GRADE",
@@ -151,5 +154,5 @@ spec:
           "SortCondition": "ASC"
         }
     output:
-      json:
+      args:
         minPrice: first($.Items[:].CurrentMinPrice)

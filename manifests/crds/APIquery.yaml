@@ -24,14 +24,17 @@ spec:
                   default: '{}'
                 input:
                   type: object
-                  x-kubernetes-preserve-unknown-fields: true
+                  properties:
+                    args:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                 output:
                   type: object
                   properties:
-                    json:
-                      type: object
-                      x-kubernetes-preserve-unknown-fields: true
-                    html:
+                    parseType: 
+                      type: string
+                      default: 'json'
+                    args:
                       type: object
                       x-kubernetes-preserve-unknown-fields: true
               required:

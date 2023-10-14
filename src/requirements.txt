@@ -6,3 +6,4 @@ requests
 jsonpath-rw
 jsonpath-rw-ext
 kubernetes
+bs4

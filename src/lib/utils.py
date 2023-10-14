@@ -6,7 +6,8 @@ import base64
 from jsonpath_rw import jsonpath
 from jsonpath_rw_ext import parse
 
-from lib.jsonpath_functions import jsonpath_functions
+from lib.parse_functions import *
+from bs4 import BeautifulSoup
 
 varname_regex = '[\w_][\w\d_-]*'
 path_regex = '^(\w*://)?((?:[\w\d_-]*\.)*[\w\d_-]*)?(?:\:(\d*))?((?:/[\w\d\._-\{\}]*)*)?'
@@ -54,7 +55,7 @@ def apply_query_params(url, params):
     return url
 
 def json_loads_with_variables(json_string, variables):
-    finds = re.findall('(\{\s*([\w_][\w\d_-]*)\s*\})', json_string)
+    finds = re.findall('(\{([\w_][\w\d_-]*)\})', json_string)
 
     if set(variables.keys()).intersection({f[1] for f in finds}):
         for ms, k in finds:
@@ -64,25 +65,30 @@ def json_loads_with_variables(json_string, variables):
         
     return json_obj
 
-def eval_jsonpath_func(jsonpath_s, content, variables):
-    regex = f'({varname_regex})\((.*)\)'
+def eval_jsonpath_func(jsonpath_s, content):
+    # recursively parse with jsonpath from content
     try:
-        func_name, jsonpath_s = re.findall(regex, jsonpath_s)[0]
-        result = eval_jsonpath_func(jsonpath_s, content, variables)
+        func_name, jsonpath_s = re.findall(f'({varname_regex})\((.*)\)', jsonpath_s)[0]
+        result = eval_jsonpath_func(jsonpath_s, content)
 
-        return jsonpath_functions[func_name](result)
+        return getattr(JsonPath, func_name)(result)
 
     except IndexError:
-        return parse_jsonpath_with_variables(jsonpath_s, content, variables)
+        return [m.value for m in parse(jsonpath_s).find(content)]
     
-def parse_jsonpath_with_variables(jsonpath_s, content, variables):
-    if len(variables.keys()) > 0:
-        jsonpath_s = jsonpath_s.format(**variables)
 
-        content_str = json.dumps(content)
-        content = json_loads_with_variables(content_str, variables)
+def eval_css_selector_func(selector_s, content):
+    # recursively parse with jsonpath from content
+    try:
+        func_name, selector_s = re.findall(f'({varname_regex})\((.*)\)', selector_s)[0]
+        result = eval_css_selector_func(selector_s, content)
+
+        return getattr(CssSelector, func_name)(result)
+
+    except IndexError:
+        soup = BeautifulSoup(content, 'html.parser')
+        return [m.text for m in soup.select(selector_s)]
     
-    return [m.value for m in parse(jsonpath_s).find(content)]
 
 def flatten_dict(d):
     return itertools.chain(*d.items())

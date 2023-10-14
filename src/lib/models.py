@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Union, Dict, List, Optional
-from lib.utils import path_param_keys_from_path, apply_query_params, apply_path_params, json_loads_with_variables, eval_jsonpath_func
+from lib.utils import path_param_keys_from_path, apply_query_params, apply_path_params, json_loads_with_variables, eval_jsonpath_func, eval_css_selector_func
 from lib.kube_utils import kube_query_jsonpath, kube_load_query, kube_get_queries
 
 from collections import deque
@@ -13,7 +13,7 @@ class Query(BaseModel):
     keyspace: str = ''
     url: str = ''
     method: str = 'GET'
-    input: Dict = {}
+    input: Dict = {'args':{}}
     data: str = '{}'
     output: Dict = {}
 
@@ -28,11 +28,10 @@ class Query(BaseModel):
         return self
     
     def validate(self, params):
-        path_params_keys = path_param_keys_from_path(self.url)
-        required_input = {k for k,v in self.input.items() if 'required' in v.keys() and 'default' not in v.keys()}
-
-        required_params_keys = path_params_keys.union(required_input)
-        params_not_provided =  required_params_keys - set(params.keys())
+        path_params = path_param_keys_from_path(self.url)
+        query_params = {k for k,v in self.input['args'].items() if 'required' in v.keys() and 'default' not in v.keys()}
+        required_params = path_params.union(query_params)
+        params_not_provided =  required_params - set(params.keys())
 
         if len(params_not_provided) > 0:
             raise KeyError(params_not_provided)
@@ -46,7 +45,7 @@ class Query(BaseModel):
 
         typefunc = {'str': str, 'string': str, 'int': int, 'integer': int, 'float': float}
         var_values = {}
-        for k,v in self.input.items():
+        for k,v in self.input['args'].items():
             f = typefunc[v['type']]
 
             if k in params.keys():
@@ -68,26 +67,35 @@ class Query(BaseModel):
     def get_output(self, body, data:Optional[Dict] = None, output_targets:Optional[List] = None):
         res = {}
         
-        for readtype, outputset in self.output.items():
-            # TODO : implement HTML parsing
-            # we only have JSON for now 
+        # TODO : implement HTML parsing
+        # we only have JSON for now 
+        q = output_targets or [k for k in self.output['args'].keys()]
+        q = set(q).intersection(self.output['args'].keys())
+        q = deque(q)
+
+        data = data or {}
+
+        required = {k:path_param_keys_from_path(v) for k,v in self.output['args'].items()}
+
+        while q:
+            k = q.pop()
             
-            q = output_targets or [k for k in outputset.keys()]
-            q = set(q).intersection(outputset.keys())
-            q = deque(q)
-
-            data = data or {}
-
-            required = {k:path_param_keys_from_path(v) for k,v in outputset.items()}
-
-            while q:
-                k = q.pop()
-                if len(required[k] - data.keys()) > 0:
-                    q.extendleft(required[k] - set(q))      # insert required parameters to the queue, if they don't exist
-                    q.appendleft(k)                         # insert self again
-                    continue
-
-                res[k] = data[k] = eval_jsonpath_func(outputset[k], body, data)
+            if len(required[k] - data.keys()) > 0:
+                q.extendleft(required[k] - set(q))      # insert required parameters to the queue, if they don't exist
+                q.appendleft(k)                         # insert self again
+                continue
+            
+            v = self.output['args'][k]
+            v = v.format(**data)
+            
+            if self.output['parseType'] == "json":
+                res[k] = data[k] = eval_jsonpath_func(v, body)
+            elif self.output['parseType'] == "html":
+                res[k] = data[k] = eval_css_selector_func(v, body)
+            else:
+                continue
+            
+            #body = json_loads_with_variables(json.dumps(body), data)
 
         return res
 

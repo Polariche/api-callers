@@ -23,7 +23,7 @@ spec:
     url: https://kr.api.riotgames.com/lol/summoner/v4/summoners/by-name/{summonerName}
     method: GET
     output:
-      json:
+      args:
         puuid: first($.puuid)
 ---
 apiVersion: queries.qouriers.io/v1
@@ -37,22 +37,23 @@ spec:
     url: https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids
     method: GET
     input:
-      startTime: 
-        type: int
-      endTime:
-        type: int
-      queue:
-        type: int
-      type:
-        type: string
-      start:
-        type: int
-        default: '0'
-      count:
-        type: int
-        default: '20'
+      args:
+        startTime: 
+          type: int
+        endTime:
+          type: int
+        queue:
+          type: int
+        type:
+          type: string
+        start:
+          type: int
+          default: '0'
+        count:
+          type: int
+          default: '20'
     output:
-      json:
+      args:
         matchids: $[:]
 ---
 apiVersion: queries.qouriers.io/v1
@@ -66,7 +67,7 @@ spec:
     url: https://asia.api.riotgames.com/lol/match/v5/matches/{matchid}
     method: GET
     output:
-      json:
+      args:
         participants: $.metadata.participants[:]
         championIds: $.info.participants[:].championId
         championNames: $.info.participants[:].championName
